@@ -1,0 +1,1118 @@
+.app-shell {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  padding: 14px 20px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.app-header-back {
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.app-header-back:hover {
+  color: var(--accent);
+}
+
+.app-header-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-logo {
+  display: block;
+  height: 36px;
+  width: auto;
+  margin-bottom: 2px;
+}
+
+.app-subtitle {
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Game dashboard layout                                                 */
+/* ---------------------------------------------------------------------- */
+/* The game screen is a dashboard, not a scrolling document: the 3D stage
+ * dominates a main row alongside a compact betting/side panel, with a
+ * short roadmap strip beneath - sized to fit a normal desktop viewport
+ * with no page scroll (see #root:has(.app-shell) in index.css, which pins
+ * the whole screen to the viewport height). Below the 1024px breakpoint
+ * this collapses back into a natural, scrollable single column. */
+
+.game-dashboard {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 12px;
+}
+
+.game-main-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 14px;
+}
+
+.game-side-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 340px;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 10px;
+}
+
+.roadmap-row {
+  flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------------- */
+/* 3D casino stage                                                        */
+/* ---------------------------------------------------------------------- */
+
+.casino-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 260px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  background: #07080b;
+}
+
+.casino-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.casino-stage-camera-switch {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: calc(100% - 28px);
+}
+
+.casino-camera-btn {
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: rgba(10, 12, 16, 0.55);
+  backdrop-filter: blur(6px);
+  color: #f2f2f2;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.casino-camera-btn:hover {
+  border-color: var(--accent);
+}
+
+.casino-camera-btn--active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (max-width: 560px) {
+  .casino-camera-btn {
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+}
+
+.casino-stage-skip {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: calc(100% - 28px);
+}
+
+.casino-skip-btn {
+  border-radius: 999px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1.5px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.1s,
+    opacity 0.15s;
+}
+
+.casino-skip-btn:hover {
+  opacity: 0.92;
+}
+
+.casino-skip-btn:active {
+  transform: scale(0.97);
+}
+
+.casino-stage-hint {
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(10, 12, 16, 0.55);
+  backdrop-filter: blur(6px);
+  color: #f2f2f2;
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Loading screen                                                         */
+/* ---------------------------------------------------------------------- */
+
+.loading-screen {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 40px 24px;
+  box-sizing: border-box;
+}
+
+.loading-logo {
+  width: min(320px, 70%);
+  height: auto;
+  animation: loading-logo-pulse 1.8s ease-in-out infinite;
+}
+
+.loading-indicator {
+  display: flex;
+  gap: 12px;
+}
+
+.loading-chip {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: loading-chip-bounce 1s ease-in-out infinite;
+}
+
+.loading-chip:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-chip:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.loading-label {
+  color: var(--text);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+@keyframes loading-logo-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.97);
+  }
+}
+
+@keyframes loading-chip-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Menu screen                                                            */
+/* ---------------------------------------------------------------------- */
+
+.menu-screen {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  padding: 40px 24px;
+  box-sizing: border-box;
+}
+
+.menu-logo {
+  width: min(380px, 80%);
+  height: auto;
+}
+
+.menu-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 280px;
+}
+
+.menu-action {
+  border-radius: 8px;
+  padding: 14px 22px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  transition:
+    border-color 0.15s,
+    transform 0.1s;
+}
+
+.menu-action:hover {
+  border-color: var(--accent);
+}
+
+.menu-action:active {
+  transform: scale(0.98);
+}
+
+.menu-action--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.how-to-play {
+  max-width: 560px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  text-align: left;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.how-to-play h2 {
+  margin: 0;
+}
+
+.how-to-play strong {
+  color: var(--text-h);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Settings screen                                                        */
+/* ---------------------------------------------------------------------- */
+
+.settings-screen {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px 28px 40px;
+  box-sizing: border-box;
+  text-align: left;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.settings-header h1 {
+  margin: 0;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.ruleset-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ruleset-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  row-gap: 4px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.ruleset-card:hover {
+  border-color: var(--accent);
+}
+
+.ruleset-card--selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.ruleset-card input[type='radio'] {
+  grid-row: 1 / 3;
+  align-self: start;
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.ruleset-card-name {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.ruleset-card-description {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.balance-presets {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.balance-preset {
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-family: var(--mono);
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.balance-preset:hover {
+  border-color: var(--accent);
+}
+
+.balance-preset--selected {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.balance-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.balance-input {
+  width: 120px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--code-bg);
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.balance-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Betting board                                                          */
+/* ---------------------------------------------------------------------- */
+
+.betting-board {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.balance-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.balance-display {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.balance-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text);
+}
+
+.balance-amount {
+  font-size: 20px;
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text-h);
+}
+
+.balance-display--wagered .balance-amount {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.chip-tray {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  border: 2px dashed rgba(255, 255, 255, 0.6);
+  color: #fff;
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.15s,
+    outline-color 0.15s;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.chip:hover {
+  transform: translateY(-2px);
+}
+
+.chip--selected {
+  outline-color: var(--accent);
+}
+
+.chip--1 {
+  background: #6b6b6b;
+}
+.chip--5 {
+  background: #c0392b;
+}
+.chip--25 {
+  background: #1f9d55;
+}
+.chip--100 {
+  background: #1f1f24;
+}
+.chip--500 {
+  background: #7d3ac1;
+}
+.chip--1000 {
+  background: linear-gradient(135deg, #e8be5a, #a1730f);
+}
+.chip--5000 {
+  background: linear-gradient(135deg, #1c2b57, #050a21);
+  border-color: rgba(214, 162, 43, 0.85);
+}
+.chip--25000 {
+  background: linear-gradient(135deg, #232323, #050505);
+  border-color: #d6a22b;
+}
+
+/* Main/side bet spots: compact oval betting circles in Buriccat's own
+ * gold/felt-green/navy/cream brand palette (see the logo SVGs and
+ * src/scene/materials.js's FELT_MATERIAL_PROPS) rather than a literal
+ * casino-red felt recolor - a gold rim and felt-green-to-navy radial fill,
+ * with the odds/hint shown as a small gold caption inside the ring and the
+ * staged-amount badge overlapping the bottom edge like a stacked chip. */
+.main-bet-spots {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0 14px;
+}
+
+.side-bet-spots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px 10px;
+  padding: 2px 0 10px;
+}
+
+.bet-spot {
+  position: relative;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid rgba(214, 162, 43, 0.5);
+  background: radial-gradient(ellipse at 50% 32%, rgba(11, 107, 58, 0.95) 0%, rgba(5, 10, 33, 0.96) 82%);
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 234, 194, 0.08),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.1s;
+}
+
+.bet-spot:hover:not(:disabled) {
+  border-color: #e8be5a;
+  box-shadow:
+    inset 0 0 0 1px rgba(245, 234, 194, 0.18),
+    0 0 0 3px rgba(214, 162, 43, 0.2);
+}
+
+.bet-spot:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.bet-spot:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bet-spot--main {
+  width: 96px;
+  height: 82px;
+}
+
+.bet-spot--tie {
+  width: 76px;
+  height: 64px;
+  align-self: center;
+  background: radial-gradient(ellipse at 50% 32%, rgba(214, 162, 43, 0.45) 0%, rgba(5, 10, 33, 0.96) 82%);
+}
+
+.bet-spot--side {
+  width: 82px;
+  height: 68px;
+}
+
+.bet-spot-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+  padding: 4px 8px;
+  pointer-events: none;
+}
+
+.bet-spot-label {
+  font-weight: 700;
+  font-size: 12px;
+  color: #f5eac2;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+}
+
+.bet-spot-hint {
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #d6a22b;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.bet-spot--side .bet-spot-label {
+  font-size: 9.5px;
+}
+
+.bet-spot--side .bet-spot-hint {
+  font-size: 7.5px;
+}
+
+.bet-spot-amount {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #e8be5a, #d6a22b);
+  color: #050a21;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1.5px solid #050a21;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.board-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.board-action {
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.board-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.board-action--deal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Result overlay                                                         */
+/* ---------------------------------------------------------------------- */
+
+.result-overlay {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  width: max-content;
+  max-width: min(620px, calc(100vw - 32px));
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 20px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+.result-overlay-dismiss {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: none;
+  background: none;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.result-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.result-winner {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--mark-color);
+}
+
+.result-totals {
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+}
+
+.result-net {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.result-net--positive {
+  color: #1f9d55;
+}
+.result-net--negative {
+  color: #e0433c;
+}
+
+.payout-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.payout-table th,
+.payout-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.payout-table th {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.outcome-win .bet-row-outcome {
+  color: #1f9d55;
+  font-weight: 600;
+}
+.outcome-lose .bet-row-outcome {
+  color: #e0433c;
+}
+.outcome-push .bet-row-outcome {
+  color: var(--text);
+}
+
+.bet-row-net,
+.bet-row-returned,
+.bet-row-amount {
+  font-family: var(--mono);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Game over                                                              */
+/* ---------------------------------------------------------------------- */
+
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(7, 8, 11, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.game-over-card {
+  width: min(360px, 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-over-card h2 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--text-h);
+}
+
+.game-over-card p {
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.game-over-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.game-over-action {
+  border-radius: 8px;
+  padding: 12px 22px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  transition:
+    border-color 0.15s,
+    transform 0.1s;
+}
+
+.game-over-action:hover {
+  border-color: var(--accent);
+}
+
+.game-over-action:active {
+  transform: scale(0.98);
+}
+
+.game-over-action--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Roadmaps                                                               */
+/* ---------------------------------------------------------------------- */
+
+.roadmap-panel {
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+}
+
+.roadmap {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.roadmap h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.road-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.road-columns {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.road-columns--empty {
+  color: var(--text);
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+.road-column {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+}
+
+.road-cell {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.bead-mark {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--mark-color);
+  display: inline-block;
+}
+
+.big-road-mark {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid var(--mark-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tie-slash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #1f9d55;
+}
+
+.tie-slash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-top: 2px solid #1f9d55;
+  transform: rotate(-45deg);
+}
+
+/* Below this width the dashboard no longer tries to fit the whole game on
+ * one screen without scrolling - it reflows back into a natural, scrollable
+ * single column instead (see the matching #root:has(.app-shell) override in
+ * index.css that unlocks the viewport-height/overflow lock at the same
+ * breakpoint). */
+@media (max-width: 1024px) {
+  .app-shell {
+    min-height: 100%;
+  }
+
+  .game-dashboard {
+    flex: initial;
+    min-height: 0;
+  }
+
+  .game-main-row {
+    flex-direction: column;
+    flex: initial;
+  }
+
+  .casino-stage {
+    flex: initial;
+    width: 100%;
+    height: min(52vh, 480px);
+    min-height: 280px;
+  }
+
+  .game-side-panel {
+    flex: initial;
+    width: 100%;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .roadmap-row .roadmap-panel {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding: 16px 14px 32px;
+  }
+
+  .balance-bar {
+    gap: 16px;
+  }
+
+  .settings-screen {
+    padding: 20px 18px 32px;
+  }
+
+  .menu-screen,
+  .loading-screen {
+    padding: 28px 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  .bet-spot--main {
+    width: 82px;
+    height: 70px;
+  }
+
+  .bet-spot--tie {
+    width: 64px;
+    height: 54px;
+  }
+
+  .bet-spot--side {
+    width: 72px;
+    height: 60px;
+  }
+
+  .board-actions {
+    justify-content: stretch;
+  }
+
+  .board-action {
+    flex: 1 1 0;
+  }
+
+  .balance-input-row {
+    flex-wrap: wrap;
+  }
+
+  .settings-actions .board-action {
+    flex: initial;
+  }
+}
