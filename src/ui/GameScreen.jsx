@@ -11,11 +11,22 @@ import RoadmapPanel from './RoadmapPanel.jsx';
 import GameOverScreen from './GameOverScreen.jsx';
 import CasinoScene from '../scene/CasinoScene.jsx';
 import TableAnimationLayer from '../scene/TableAnimationLayer.jsx';
-import { CAMERA_VIEWS, CAMERA_VIEW_IDS, DEFAULT_CAMERA_VIEW, BETTING_SPOTS, CHIP_RACK_POSITION, DISCARD_TRAY_POSITION } from '../scene/layout.js';
+import {
+  CAMERA_VIEWS,
+  CAMERA_VIEW_IDS,
+  DEFAULT_CAMERA_VIEW,
+  BETTING_SPOTS,
+  CHIP_RACK_POSITION,
+  DISCARD_TRAY_POSITION,
+  SHOE_EXIT_POINT,
+  PLAYER_HAND_SLOTS,
+  BANKER_HAND_SLOTS,
+} from '../scene/layout.js';
 import { CHIP_DENOMINATION_COLORS } from '../scene/materials.js';
 import { representativeChip } from '../scene/chipBreakdown.js';
 import { CARD_DEAL_STAGGER, CARD_FLIGHT_DURATION, SETTLE_DISPLAY_DURATION } from '../scene/animationTiming.js';
 import { getVisibleChipValues } from './constants.js';
+import { useCasinoAudio } from '../audio/useCasinoAudio.js';
 
 const EMPTY_MAIN_BETS = Object.fromEntries(Object.values(MAIN_BET_TYPES).map((type) => [type, 0]));
 const EMPTY_SIDE_BETS = Object.fromEntries(Object.keys(SIDE_BETS).map((id) => [id, 0]));
@@ -76,6 +87,16 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   const [lastPayout, setLastPayout] = useState(null);
   const [overlayVisible, setOverlayVisible] = useState(false);
   const [cameraView, setCameraView] = useState(DEFAULT_CAMERA_VIEW);
+
+  const audio = useCasinoAudio();
+
+  // Opens the very first betting round of the session - every subsequent
+  // "place your bets" moment is spoken from the settle->idle transition in
+  // commitOutcome's delayed callback below, and from resetGame().
+  useEffect(() => {
+    audio.voice.betsOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- Deal / squeeze / reveal choreography state -------------------------
   // 'idle' -> 'dealing' (exactly 4 cards flying to their slots - Player,
@@ -164,6 +185,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
 
   const spawnChipFlight = useCallback((from, to, amount) => {
     const chip = representativeChip(amount, CHIP_DENOMINATION_COLORS);
+    audio.sfx.chipClink(to.x, amount);
     flightIdRef.current += 1;
     // Freeze the id into its own binding *before* handing it to the
     // setChipFlights updater: several flights are often queued
@@ -174,7 +196,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     // same (fully-incremented) ref value and collide on the same React key.
     const id = flightIdRef.current;
     setChipFlights((flights) => [...flights, { id, from, to, color: chip.color }]);
-  }, []);
+  }, [audio.sfx]);
 
   const removeChipFlight = useCallback((id) => {
     setChipFlights((flights) => flights.filter((flight) => flight.id !== id));
@@ -237,6 +259,11 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
 
     dealTimelineRef.current?.kill();
     settleDelayRef.current?.kill();
+    // Fresh hand: stop any straggling sound/speech left over from a
+    // previous one before this hand's own cues start firing.
+    audio.resetForNewHand();
+    audio.sfx.shoeSlide(SHOE_EXIT_POINT.x);
+    audio.voice.bettingClosed();
 
     // A shoe flagged for reshuffle on the previous hand is replaced before
     // the next hand is dealt, never mid-hand - see shoe.js ShoeState.needsReshuffle.
@@ -328,6 +355,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     initialSequence.forEach((step, i) => {
       timeline.call(
         () => {
+          audio.sfx.cardSlide(SHOE_EXIT_POINT.x);
           if (step.side === 'PLAYER') setPlayerCards((cards) => [...cards, step.card]);
           else setBankerCards((cards) => [...cards, step.card]);
         },
@@ -337,7 +365,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     });
     timeline.to({}, { duration: 0.001 }, (initialSequence.length - 1) * CARD_DEAL_STAGGER + CARD_FLIGHT_DURATION);
     dealTimelineRef.current = timeline;
-  }, [shoe, history, mainBetAmounts, sideBetAmounts, dealPhase, payoutRuleset, totalWagered]);
+  }, [shoe, history, mainBetAmounts, sideBetAmounts, dealPhase, payoutRuleset, totalWagered, audio]);
 
   // Applies an already-resolved outcome to the 2D UI: balance/history/
   // roadmap/result overlay, plus raking losing chips to the tray. Shared by
@@ -358,6 +386,10 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
       setSideBetAmounts(EMPTY_SIDE_BETS);
       setDealPhase('settling');
 
+      // PAYOUT-equivalent voice line: winner + the winning side's total
+      // (or both totals on a tie) - see voiceLines.js's RESULT entry.
+      audio.voice.result(outcome.result);
+
       // Losing chips rake to the discard tray; winning/pushed spots simply
       // clear (no stake-return animation needed - see task scope).
       outcome.payout.mainBets.forEach((bet) => {
@@ -376,9 +408,11 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
         setPlayerCards([]);
         setBankerCards([]);
         setDealPhase('idle');
+        // A fresh betting round has opened.
+        audio.voice.betsOpen();
       });
     },
-    [spawnChipFlight]
+    [spawnChipFlight, audio]
   );
 
   // The dedicated skip/reveal control: fast-forwards whichever step is
@@ -435,8 +469,16 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     outcome.drawSequence.forEach((step, i) => {
       timeline.call(
         () => {
-          if (step.side === 'PLAYER') setPlayerCards((cards) => [...cards, step.card]);
-          else setBankerCards((cards) => [...cards, step.card]);
+          // PLAYER_DRAW/BANKER_DRAW voice line, plus the same card-slide SFX
+          // as the opening deal - this is a real hit card leaving the shoe.
+          audio.sfx.cardSlide(SHOE_EXIT_POINT.x);
+          if (step.side === 'PLAYER') {
+            audio.voice.playerDraw();
+            setPlayerCards((cards) => [...cards, step.card]);
+          } else {
+            audio.voice.bankerDraw();
+            setBankerCards((cards) => [...cards, step.card]);
+          }
         },
         null,
         i * CARD_DEAL_STAGGER
@@ -444,7 +486,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     });
     timeline.to({}, { duration: 0.001 }, (outcome.drawSequence.length - 1) * CARD_DEAL_STAGGER + CARD_FLIGHT_DURATION);
     dealTimelineRef.current = timeline;
-  }, [dealPhase, playerRevealed, bankerRevealed, commitOutcome]);
+  }, [dealPhase, playerRevealed, bankerRevealed, commitOutcome, audio]);
 
   const canDeal = totalWagered > 0 && dealPhase === 'idle';
   const skipEnabled = dealPhase === 'dealing' || dealPhase === 'squeeze' || dealPhase === 'drawing';
@@ -469,6 +511,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     dealTimelineRef.current?.kill();
     settleDelayRef.current?.kill();
     pendingOutcomeRef.current = null;
+    audio.resetForNewHand();
 
     setShoe(initializeShoe());
     setHistory([]);
@@ -489,7 +532,8 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     setInstantDeal(false);
     setChipFlights([]);
     setDealPhase('idle');
-  }, [startingBalance]);
+    audio.voice.betsOpen();
+  }, [startingBalance, audio]);
 
   return (
     <div className="app-shell">
@@ -503,6 +547,15 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
           <img src={buriccatLogo} alt="Buriccat" className="app-logo" />
           <p className="app-subtitle">Punto Banco prototype &middot; {payoutRuleset.name}</p>
         </div>
+        <button
+          type="button"
+          className="app-header-mute"
+          onClick={audio.toggleMuted}
+          aria-pressed={audio.muted}
+          title={audio.muted ? 'Unmute sound' : 'Mute sound'}
+        >
+          {audio.muted ? 'Sound: Off' : 'Sound: On'}
+        </button>
       </header>
 
       <div className="game-dashboard">
@@ -516,8 +569,14 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
                 bankerRevealed={bankerRevealed}
                 squeezeInteractive={dealPhase === 'squeeze'}
                 instantDeal={instantDeal}
-                onPlayerSqueezeComplete={() => setPlayerRevealed(true)}
-                onBankerSqueezeComplete={() => setBankerRevealed(true)}
+                onPlayerSqueezeComplete={() => {
+                  audio.sfx.cardFlip(PLAYER_HAND_SLOTS[1].x);
+                  setPlayerRevealed(true);
+                }}
+                onBankerSqueezeComplete={() => {
+                  audio.sfx.cardFlip(BANKER_HAND_SLOTS[1].x);
+                  setBankerRevealed(true);
+                }}
                 spotAmounts={spotAmounts}
                 chipFlights={chipFlights}
                 onChipFlightComplete={removeChipFlight}

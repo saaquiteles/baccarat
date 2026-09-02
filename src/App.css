@@ -37,6 +37,27 @@
   gap: 4px;
 }
 
+.app-header-mute {
+  margin-left: auto;
+  border: 1px solid var(--accent, #999);
+  background: none;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.app-header-mute:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.app-header-mute[aria-pressed='true'] {
+  opacity: 0.6;
+}
+
 .app-logo {
   display: block;
   height: 36px;
