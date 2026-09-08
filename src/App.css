@@ -1,26 +1,78 @@
+/* ---------------------------------------------------------------------- */
+/* App shell / 3D casino stage                                            */
+/* ---------------------------------------------------------------------- */
+/* The game screen is one full-bleed viewport, not a dashboard of separate
+ * document sections: the 3D table (.casino-stage) fills all available
+ * space edge-to-edge at any screen size or aspect ratio, and every control
+ * - header, camera switch, roadmaps, skip, betting board - is an
+ * absolutely-positioned HUD layer on top of it (see the .hud-* rules
+ * below), the way a real casino broadcast overlays its HUD on the table
+ * feed rather than boxing it beside/under a separate panel. There is no
+ * reflow breakpoint that falls back to a stacked document: every size,
+ * including narrow phones, gets the same full-bleed-table-plus-HUD
+ * structure, just with the HUD's own internal layout adapting (see the
+ * media queries at the end of this file and #root:has(.app-shell) in
+ * index.css, which pins the whole screen to the viewport height so this
+ * never scrolls as a page). */
+
 .app-shell {
   text-align: left;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   min-height: 0;
-  padding: 14px 20px;
-  gap: 12px;
-  box-sizing: border-box;
 }
 
-.app-header {
+.casino-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #07080b;
+  /* A subtle vignette, darkest at the corners, keeps every HUD layer's
+   * light text/gold accents readable against whatever the felt/lighting
+   * underneath happens to be doing - a legibility aid, not decoration. */
+  isolation: isolate;
+}
+
+.casino-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(ellipse at 50% 42%, transparent 45%, rgba(2, 3, 6, 0.55) 100%);
+}
+
+.casino-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ---------------------------------------------------------------------- */
+/* HUD: top bar                                                           */
+/* ---------------------------------------------------------------------- */
+
+.hud-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
   flex-wrap: wrap;
-  flex: 0 0 auto;
+  padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left));
+  background: linear-gradient(to bottom, rgba(4, 5, 9, 0.82) 0%, rgba(4, 5, 9, 0.55) 65%, transparent 100%);
 }
 
 .app-header-back {
   border: none;
   background: none;
-  color: var(--text);
+  color: #f5eac2;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -34,19 +86,42 @@
 .app-header-brand {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+}
+
+.hud-topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hud-topbar-balance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  line-height: 1.1;
+}
+
+.hud-topbar-balance .balance-label {
+  color: #cfc9d6;
+}
+
+.hud-topbar-balance .balance-amount {
+  color: #f5eac2;
 }
 
 .app-header-mute {
-  margin-left: auto;
-  border: 1px solid var(--accent, #999);
-  background: none;
-  color: var(--text);
+  border: 1px solid rgba(214, 162, 43, 0.6);
+  background: rgba(10, 12, 16, 0.4);
+  color: #f5eac2;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   padding: 6px 12px;
   border-radius: 999px;
+  flex: 0 0 auto;
 }
 
 .app-header-mute:hover {
@@ -60,86 +135,25 @@
 
 .app-logo {
   display: block;
-  height: 36px;
+  height: 28px;
   width: auto;
-  margin-bottom: 2px;
 }
 
 .app-subtitle {
-  color: var(--text);
-  font-size: 13px;
+  color: #cfc9d6;
+  font-size: 12px;
 }
 
 /* ---------------------------------------------------------------------- */
-/* Game dashboard layout                                                 */
-/* ---------------------------------------------------------------------- */
-/* The game screen is a dashboard, not a scrolling document: the 3D stage
- * dominates a main row alongside a compact betting/side panel, with a
- * short roadmap strip beneath - sized to fit a normal desktop viewport
- * with no page scroll (see #root:has(.app-shell) in index.css, which pins
- * the whole screen to the viewport height). Below the 1024px breakpoint
- * this collapses back into a natural, scrollable single column. */
-
-.game-dashboard {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  gap: 12px;
-}
-
-.game-main-row {
-  display: flex;
-  flex-direction: row;
-  flex: 1 1 auto;
-  min-height: 0;
-  gap: 14px;
-}
-
-.game-side-panel {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 340px;
-  min-height: 0;
-  overflow-y: auto;
-  gap: 10px;
-}
-
-.roadmap-row {
-  flex: 0 0 auto;
-}
-
-/* ---------------------------------------------------------------------- */
-/* 3D casino stage                                                        */
+/* HUD: camera switch (an item inside the top bar, not its own floating  */
+/* widget - see the JSX comment in GameScreen.jsx for why)                */
 /* ---------------------------------------------------------------------- */
 
-.casino-stage {
-  position: relative;
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 260px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  background: #07080b;
-}
-
-.casino-stage canvas {
-  display: block;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.casino-stage-camera-switch {
-  position: absolute;
-  top: 14px;
-  right: 14px;
+.hud-camera-switch {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
-  max-width: calc(100% - 28px);
 }
 
 .casino-camera-btn {
@@ -175,15 +189,55 @@
   }
 }
 
-.casino-stage-skip {
+/* ---------------------------------------------------------------------- */
+/* HUD: bottom dock (skip control + betting board, stacked in normal flow */
+/* so neither has to guess the other's height via fixed offsets)          */
+/* ---------------------------------------------------------------------- */
+
+.hud-bottom-dock {
   position: absolute;
-  left: 14px;
-  bottom: 14px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  gap: 10px;
+  padding: 0 max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+
+/* Skip control (centered) and the roadmap widget (flush right) share one
+ * row directly above the betting board - a spacer mirrors the roadmap
+ * widget's own width so the skip control stays visually centered on the
+ * table rather than drifting left of true-center once the roadmap widget
+ * claims space on the right. */
+.hud-bottom-row {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hud-bottom-row-spacer {
+  flex: 1 1 140px;
+  max-width: 300px;
+}
+
+.hud-bottom-row-center {
+  flex: 3 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.hud-skip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 6px;
-  max-width: calc(100% - 28px);
 }
 
 .casino-skip-btn {
@@ -507,19 +561,39 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Betting board                                                          */
+/* HUD: betting board                                                     */
 /* ---------------------------------------------------------------------- */
+/* A glass HUD bar docked to the bottom of the table (see .hud-betting/
+ * .hud-bottom-dock above), not a boxed light-theme side panel - it shares
+ * the same dark/gold casino palette as .bet-spot and .hud-topbar rather
+ * than the site's light `--bg`/`--border` tokens, since it now floats
+ * directly over the dark felt instead of sitting beside it. A CSS grid
+ * keeps the prominent main-bet ovals centered with the chip tray/wagered
+ * readout to their left and Clear/Deal stacked to their right; the single-
+ * column fallback for narrow screens lives in the responsive rules at the
+ * end of this file. */
+
+.hud-betting {
+  width: min(100%, 980px);
+}
 
 .betting-board {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  border: 1px solid rgba(214, 162, 43, 0.35);
+  border-radius: 18px 18px 0 0;
+  padding: 10px 18px max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, rgba(6, 8, 14, 0.68) 0%, rgba(4, 6, 11, 0.86) 100%);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr minmax(110px, auto);
+  grid-template-areas: 'balance mainbets actions' 'chips sidebets actions';
+  align-items: center;
+  column-gap: 18px;
+  row-gap: 4px;
 }
 
 .balance-bar {
+  grid-area: balance;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
@@ -535,14 +609,14 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text);
+  color: #cfc9d6;
 }
 
 .balance-amount {
   font-size: 20px;
   font-weight: 600;
   font-family: var(--mono);
-  color: var(--text-h);
+  color: #f5eac2;
 }
 
 .balance-display--wagered .balance-amount {
@@ -551,6 +625,7 @@
 }
 
 .chip-tray {
+  grid-area: chips;
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
@@ -616,11 +691,35 @@
  * with the odds/hint shown as a small gold caption inside the ring and the
  * staged-amount badge overlapping the bottom edge like a stacked chip. */
 .main-bet-spots {
+  grid-area: mainbets;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 12px;
-  padding: 8px 0 14px;
+  padding: 8px 0 4px;
+}
+
+.side-bet-group {
+  grid-area: sidebets;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.side-bet-toggle {
+  border: none;
+  background: none;
+  color: #cfc9d6;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.side-bet-toggle:hover {
+  color: #f5eac2;
 }
 
 .side-bet-spots {
@@ -628,8 +727,8 @@
   flex-wrap: wrap;
   align-items: flex-start;
   justify-content: center;
-  gap: 8px 10px;
-  padding: 2px 0 10px;
+  gap: 6px 8px;
+  padding: 0 0 4px;
 }
 
 .bet-spot {
@@ -738,14 +837,19 @@
 }
 
 .board-actions {
+  grid-area: actions;
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  justify-content: flex-end;
 }
 
+/* Base (site-theme) button, shared with SettingsScreen's plain "Back"
+ * button which is not part of the dark casino HUD. .betting-board below
+ * overrides these to the HUD's own dark/gold palette - scoped so that
+ * reuse doesn't leak the felt-table styling onto a light-themed page. */
 .board-action {
   border-radius: 8px;
-  padding: 8px 16px;
+  padding: 9px 18px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -755,7 +859,7 @@
 }
 
 .board-action:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -763,6 +867,16 @@
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
+}
+
+.betting-board .board-action {
+  border-color: rgba(214, 162, 43, 0.45);
+  background: rgba(10, 12, 16, 0.5);
+  color: #f5eac2;
+}
+
+.betting-board .board-action:hover:not(:disabled) {
+  border-color: #e8be5a;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -948,50 +1062,90 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Roadmaps                                                               */
+/* HUD: roadmaps - a landscape (wider-than-tall) corner widget docked      */
+/* bottom-right, directly above the betting board, with Bead Plate        */
+/* stacked above Big Road rather than side by side: each roadmap gets the */
+/* widget's full width for its own horizontal scroll instead of splitting */
+/* it in half, which matters most for Big Road's potentially long streaks.*/
 /* ---------------------------------------------------------------------- */
 
-.roadmap-panel {
+.hud-roadmaps {
+  flex: 1 1 140px;
+  max-width: 300px;
   display: flex;
-  flex-direction: row;
-  gap: 14px;
+  justify-content: flex-end;
+}
+
+.roadmap-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(214, 162, 43, 0.35);
+  border-radius: 10px;
+  background: rgba(6, 8, 14, 0.72);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.roadmap-panel-toggle {
+  border: none;
+  background: none;
+  color: #f5eac2;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 8px 12px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.roadmap-panel-toggle:hover {
+  color: var(--accent);
+}
+
+.roadmap-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 12px 10px;
 }
 
 .roadmap {
-  flex: 1 1 0;
   min-width: 0;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
 }
 
 .roadmap h3 {
-  margin: 0 0 8px;
-  font-size: 13px;
+  margin: 0 0 4px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--text-h);
+  color: #cfc9d6;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .road-note {
-  margin: 0 0 8px;
-  font-size: 12px;
-  color: var(--text);
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  color: #cfc9d6;
 }
 
 .road-columns {
   display: flex;
   gap: 2px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 .road-columns--empty {
-  color: var(--text);
-  font-size: 13px;
-  padding: 12px 0;
+  color: #cfc9d6;
+  font-size: 11px;
+  padding: 6px 0;
 }
 
 .road-column {
@@ -1001,8 +1155,8 @@
 }
 
 .road-cell {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1010,8 +1164,8 @@
 }
 
 .bead-mark {
-  width: 13px;
-  height: 13px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--mark-color);
   display: inline-block;
@@ -1019,10 +1173,10 @@
 
 .big-road-mark {
   position: relative;
-  width: 17px;
-  height: 17px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  border: 2px solid var(--mark-color);
+  border: 1.5px solid var(--mark-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1034,7 +1188,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
+  font-size: 6px;
   font-weight: 700;
   color: #1f9d55;
 }
@@ -1043,58 +1197,17 @@
   content: '';
   position: absolute;
   inset: 0;
-  border-top: 2px solid #1f9d55;
+  border-top: 1.5px solid #1f9d55;
   transform: rotate(-45deg);
 }
 
-/* Below this width the dashboard no longer tries to fit the whole game on
- * one screen without scrolling - it reflows back into a natural, scrollable
- * single column instead (see the matching #root:has(.app-shell) override in
- * index.css that unlocks the viewport-height/overflow lock at the same
- * breakpoint). */
-@media (max-width: 1024px) {
-  .app-shell {
-    min-height: 100%;
-  }
-
-  .game-dashboard {
-    flex: initial;
-    min-height: 0;
-  }
-
-  .game-main-row {
-    flex-direction: column;
-    flex: initial;
-  }
-
-  .casino-stage {
-    flex: initial;
-    width: 100%;
-    height: min(52vh, 480px);
-    min-height: 280px;
-  }
-
-  .game-side-panel {
-    flex: initial;
-    width: 100%;
-    max-width: none;
-    overflow: visible;
-  }
-
-  .roadmap-row .roadmap-panel {
-    flex-direction: column;
-  }
-}
+/* The HUD overlay itself never reflows into a separate stacked document -
+ * every size gets the same full-bleed-table-plus-overlay structure. Only
+ * the betting board's internal grid and a few HUD element sizes adapt
+ * below, so the bottom dock stays usable (and the felt behind it stays
+ * visible) down to a narrow phone. */
 
 @media (max-width: 900px) {
-  .app-shell {
-    padding: 16px 14px 32px;
-  }
-
-  .balance-bar {
-    gap: 16px;
-  }
-
   .settings-screen {
     padding: 20px 18px 32px;
   }
@@ -1105,7 +1218,46 @@
   }
 }
 
+@media (max-width: 720px) {
+  .hud-roadmaps {
+    max-width: min(calc(100% - 24px), 240px);
+  }
+
+  .app-subtitle {
+    display: none;
+  }
+
+  .betting-board {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'balance' 'chips' 'mainbets' 'sidebets' 'actions';
+    justify-items: center;
+    row-gap: 8px;
+    max-height: 46vh;
+    overflow-y: auto;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .balance-bar,
+  .chip-tray {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .board-actions {
+    flex-direction: row;
+    width: 100%;
+  }
+
+  .board-action {
+    flex: 1 1 0;
+  }
+}
+
 @media (max-width: 560px) {
+  .hud-topbar {
+    gap: 10px;
+  }
+
   .bet-spot--main {
     width: 82px;
     height: 70px;
@@ -1119,14 +1271,6 @@
   .bet-spot--side {
     width: 72px;
     height: 60px;
-  }
-
-  .board-actions {
-    justify-content: stretch;
-  }
-
-  .board-action {
-    flex: 1 1 0;
   }
 
   .balance-input-row {

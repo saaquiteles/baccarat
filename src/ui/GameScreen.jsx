@@ -537,53 +537,53 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        {onExit && (
-          <button type="button" className="app-header-back" onClick={onExit}>
-            &larr; Menu
-          </button>
-        )}
-        <div className="app-header-brand">
-          <img src={buriccatLogo} alt="Buriccat" className="app-logo" />
-          <p className="app-subtitle">Punto Banco prototype &middot; {payoutRuleset.name}</p>
-        </div>
-        <button
-          type="button"
-          className="app-header-mute"
-          onClick={audio.toggleMuted}
-          aria-pressed={audio.muted}
-          title={audio.muted ? 'Unmute sound' : 'Mute sound'}
-        >
-          {audio.muted ? 'Sound: Off' : 'Sound: On'}
-        </button>
-      </header>
+      <section className="casino-stage" aria-label="3D table view">
+        <CasinoScene activeView={cameraView}>
+          <TableAnimationLayer
+            playerCards={playerCards}
+            bankerCards={bankerCards}
+            playerRevealed={playerRevealed}
+            bankerRevealed={bankerRevealed}
+            squeezeInteractive={dealPhase === 'squeeze'}
+            instantDeal={instantDeal}
+            onPlayerSqueezeComplete={() => {
+              audio.sfx.cardFlip(PLAYER_HAND_SLOTS[1].x);
+              setPlayerRevealed(true);
+            }}
+            onBankerSqueezeComplete={() => {
+              audio.sfx.cardFlip(BANKER_HAND_SLOTS[1].x);
+              setBankerRevealed(true);
+            }}
+            spotAmounts={spotAmounts}
+            chipFlights={chipFlights}
+            onChipFlightComplete={removeChipFlight}
+          />
+        </CasinoScene>
 
-      <div className="game-dashboard">
-        <div className="game-main-row">
-          <section className="casino-stage" aria-label="3D table view">
-            <CasinoScene activeView={cameraView}>
-              <TableAnimationLayer
-                playerCards={playerCards}
-                bankerCards={bankerCards}
-                playerRevealed={playerRevealed}
-                bankerRevealed={bankerRevealed}
-                squeezeInteractive={dealPhase === 'squeeze'}
-                instantDeal={instantDeal}
-                onPlayerSqueezeComplete={() => {
-                  audio.sfx.cardFlip(PLAYER_HAND_SLOTS[1].x);
-                  setPlayerRevealed(true);
-                }}
-                onBankerSqueezeComplete={() => {
-                  audio.sfx.cardFlip(BANKER_HAND_SLOTS[1].x);
-                  setBankerRevealed(true);
-                }}
-                spotAmounts={spotAmounts}
-                chipFlights={chipFlights}
-                onChipFlightComplete={removeChipFlight}
-              />
-            </CasinoScene>
+        {/* Every element below is a HUD layer overlaid on the 3D table,
+         * never a separate document section beside/below it - see
+         * .hud-* in App.css for the overlay positioning. */}
 
-            <div className="casino-stage-camera-switch" role="group" aria-label="Camera view">
+        <header className="hud-topbar">
+          {onExit && (
+            <button type="button" className="app-header-back" onClick={onExit}>
+              &larr; Menu
+            </button>
+          )}
+          <div className="app-header-brand">
+            <img src={buriccatLogo} alt="Buriccat" className="app-logo" />
+            <p className="app-subtitle">{payoutRuleset.name}</p>
+          </div>
+          <div className="hud-topbar-actions">
+            <div className="hud-topbar-balance">
+              <span className="balance-label">Balance</span>
+              <span className="balance-amount">{balance.toLocaleString()}</span>
+            </div>
+            {/* Folded into the top bar rather than floated as its own
+             * corner widget: with only one manually-selectable view (see
+             * CAMERA_VIEW_IDS in layout.js) a separate floating group had
+             * nothing to gain from a fixed position of its own. */}
+            <div className="hud-camera-switch" role="group" aria-label="Camera view">
               {CAMERA_VIEW_IDS.map((viewId) => (
                 <button
                   key={viewId}
@@ -596,24 +596,47 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className="app-header-mute"
+              onClick={audio.toggleMuted}
+              aria-pressed={audio.muted}
+              title={audio.muted ? 'Unmute sound' : 'Mute sound'}
+            >
+              {audio.muted ? 'Sound: Off' : 'Sound: On'}
+            </button>
+          </div>
+        </header>
 
-            {skipEnabled && (
-              <div className="casino-stage-skip">
-                <button type="button" className="casino-skip-btn" onClick={skip}>
-                  {skipLabel}
-                </button>
-                {dealPhase === 'squeeze' && (
-                  <p className="casino-stage-hint">
-                    Drag a hand's cards upward to squeeze it, or reveal both instantly.
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
+        <div className="hud-bottom-dock">
+          {/* A three-segment row so the skip control stays dead-centered
+           * regardless of the roadmap widget's width, with the roadmap
+           * widget itself flush to the bottom-right - both sitting exactly
+           * above the betting board in normal flow (see the comment on
+           * .hud-bottom-dock in App.css for why that matters). */}
+          <div className="hud-bottom-row">
+            <div className="hud-bottom-row-spacer" aria-hidden="true" />
+            <div className="hud-bottom-row-center">
+              {skipEnabled && (
+                <div className="hud-skip">
+                  <button type="button" className="casino-skip-btn" onClick={skip}>
+                    {skipLabel}
+                  </button>
+                  {dealPhase === 'squeeze' && (
+                    <p className="casino-stage-hint">
+                      Drag a hand's cards upward to squeeze it, or reveal both instantly.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="hud-roadmaps">
+              <RoadmapPanel history={history} />
+            </div>
+          </div>
 
-          <aside className="game-side-panel" aria-label="Betting controls">
+          <div className="hud-betting">
             <BettingBoard
-              balance={balance}
               mainBetAmounts={mainBetAmounts}
               sideBetAmounts={sideBetAmounts}
               chipValues={visibleChipValues}
@@ -626,13 +649,9 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
               canDeal={canDeal}
               locked={bettingLocked}
             />
-          </aside>
+          </div>
         </div>
-
-        <div className="roadmap-row">
-          <RoadmapPanel history={history} />
-        </div>
-      </div>
+      </section>
 
       <ResultOverlay
         result={lastResult}

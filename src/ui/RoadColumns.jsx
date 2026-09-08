@@ -13,7 +13,10 @@
  * this non-animated prototype.
  */
 
-export const CELL_SIZE = 22;
+// Sized for a compact corner HUD widget (see .hud-roadmaps in App.css),
+// not a full dashboard section - small enough that both roadmaps fit in a
+// pocket of screen the table can otherwise keep.
+export const CELL_SIZE = 16;
 
 function RoadColumns({ columns, rows = 6, renderCell, emptyLabel, className = '' }) {
   if (columns.length === 0) {

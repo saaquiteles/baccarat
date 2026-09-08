@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MAIN_BET_TYPES } from '../game/payouts.js';
 import {
   SIDE_BETS,
@@ -43,8 +44,14 @@ const MAIN_BET_LABELS = {
   [MAIN_BET_TYPES.TIE]: { label: 'Tie', hint: 'Pays 8:1' },
 };
 
+// Rendered left-to-right as Player / Tie / Banker - the felt's real-world
+// reading order, with Tie's smaller spot sitting between the two main hands
+// rather than off to one side - independent of MAIN_BET_TYPES' own key
+// order (which the rules engine/tests use and shouldn't have to match a UI
+// layout choice).
+const MAIN_BET_DISPLAY_ORDER = [MAIN_BET_TYPES.PLAYER, MAIN_BET_TYPES.TIE, MAIN_BET_TYPES.BANKER];
+
 function BettingBoard({
-  balance,
   mainBetAmounts,
   sideBetAmounts,
   chipValues,
@@ -61,6 +68,16 @@ function BettingBoard({
     Object.values(mainBetAmounts).reduce((a, b) => a + b, 0) +
     Object.values(sideBetAmounts).reduce((a, b) => a + b, 0);
 
+  // Side bets collapse behind a toggle on narrow screens (see .betting-board
+  // in App.css) - the docked HUD bar can otherwise run out of vertical room
+  // before reaching the Deal button, the one control that must never sit
+  // below a scroll fold. Defaults open (matching the previous always-shown
+  // behavior on anything roomier than a phone); the toggle's own label
+  // always states how many side bets are staged, even while collapsed, so
+  // collapsing never hides an active wager from view, only the picker.
+  const [sideBetsOpen, setSideBetsOpen] = useState(true);
+  const stagedSideBetCount = Object.values(sideBetAmounts).filter((amount) => amount > 0).length;
+
   // A bet spot stays clickable as long as *some* visible chip denomination
   // is affordable - GameScreen's placeMainBet/placeSideBet fall back to the
   // largest affordable one when the selected chipValue itself exceeds the
@@ -72,10 +89,6 @@ function BettingBoard({
   return (
     <section className="betting-board" aria-label="Betting board">
       <div className="balance-bar">
-        <div className="balance-display">
-          <span className="balance-label">Balance</span>
-          <span className="balance-amount">{balance.toLocaleString()}</span>
-        </div>
         <div className="balance-display balance-display--wagered">
           <span className="balance-label">Wagered</span>
           <span className="balance-amount">{totalWagered.toLocaleString()}</span>
@@ -98,7 +111,7 @@ function BettingBoard({
       </div>
 
       <div className="main-bet-spots">
-        {Object.values(MAIN_BET_TYPES).map((betType) => {
+        {MAIN_BET_DISPLAY_ORDER.map((betType) => {
           const { label, hint } = MAIN_BET_LABELS[betType];
           return (
             <button
@@ -121,25 +134,39 @@ function BettingBoard({
         })}
       </div>
 
-      <div className="side-bet-spots">
-        {Object.values(SIDE_BETS).map((sideBet) => (
-          <button
-            key={sideBet.id}
-            type="button"
-            className="bet-spot bet-spot--side"
-            onClick={() => onPlaceSideBet(sideBet.id)}
-            disabled={!canPlaceAnyChip || locked}
-            title={locked ? 'Betting is locked while a hand is in progress' : sideBet.description}
-          >
-            <span className="bet-spot-ring">
-              <span className="bet-spot-label">{sideBet.name}</span>
-              <span className="bet-spot-hint">{SIDE_BET_ODDS_LABEL[sideBet.id]}</span>
-            </span>
-            {sideBetAmounts[sideBet.id] > 0 && (
-              <span className="bet-spot-amount">{sideBetAmounts[sideBet.id]}</span>
-            )}
-          </button>
-        ))}
+      <div className="side-bet-group">
+        <button
+          type="button"
+          className="side-bet-toggle"
+          onClick={() => setSideBetsOpen((v) => !v)}
+          aria-expanded={sideBetsOpen}
+        >
+          <span aria-hidden="true">{sideBetsOpen ? '▾' : '▸'}</span> Side Bets
+          {stagedSideBetCount > 0 && ` · ${stagedSideBetCount} staged`}
+        </button>
+
+        {sideBetsOpen && (
+          <div className="side-bet-spots">
+            {Object.values(SIDE_BETS).map((sideBet) => (
+              <button
+                key={sideBet.id}
+                type="button"
+                className="bet-spot bet-spot--side"
+                onClick={() => onPlaceSideBet(sideBet.id)}
+                disabled={!canPlaceAnyChip || locked}
+                title={locked ? 'Betting is locked while a hand is in progress' : sideBet.description}
+              >
+                <span className="bet-spot-ring">
+                  <span className="bet-spot-label">{sideBet.name}</span>
+                  <span className="bet-spot-hint">{SIDE_BET_ODDS_LABEL[sideBet.id]}</span>
+                </span>
+                {sideBetAmounts[sideBet.id] > 0 && (
+                  <span className="bet-spot-amount">{sideBetAmounts[sideBet.id]}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="board-actions">
