@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { TABLE } from './layout.js';
 import { roundedRectShape, buildFlatSlabGeometry, buildTrimTubeGeometry } from './shapeUtils.js';
@@ -58,6 +58,22 @@ function Table({ feltColor }) {
     () => buildTrimTubeGeometry(feltShape, TABLE.height + TABLE.feltThickness + 0.004, TABLE.brassTrimRadius),
     [feltShape]
   );
+
+  // These three geometries are attached to their <mesh> via the `geometry`
+  // prop rather than as a JSX child (<bufferGeometry .../>), so React Three
+  // Fiber's per-instance unmount disposal never sees them - that auto-
+  // dispose behavior only triggers for objects that are themselves mounted
+  // as their own JSX element (see removeChild/disposeOnIdle in
+  // @react-three/fiber's reconciler), not for a manually-built
+  // THREE.BufferGeometry merely assigned as a prop value. Table only mounts
+  // once per GameScreen visit, but GameScreen visits repeat every session
+  // (Menu -> Play -> Menu -> Play...), and each mount built fresh
+  // ExtrudeGeometry/TubeGeometry buffers (curveSegments 24, a 220-segment
+  // tube) that were silently leaking GPU memory on every return trip to the
+  // menu before this explicit disposal was added.
+  useEffect(() => () => railGeometry.dispose(), [railGeometry]);
+  useEffect(() => () => feltGeometry.dispose(), [feltGeometry]);
+  useEffect(() => () => trimGeometry.dispose(), [trimGeometry]);
 
   // The beveled rail's true bottom sits an extra bevelThickness below its
   // nominal thickness (see buildFlatSlabGeometry) - the pedestal is sized
