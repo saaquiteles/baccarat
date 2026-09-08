@@ -125,7 +125,7 @@ describe('simulateHand - payout integration (main bet + all five side bets in on
   // banker: 1+0 = 1 initially -> always draws (rows 0/1/2) -> +6 = 7
   // winner: BANKER (7 > 4), banker's winning hand has 3 cards totaling 7 -> Dragon 7
   // player's first two cards (2S,2H) are a same-rank, different-suit pair -> Player Pair wins,
-  //   and Perfect Pair wins at the mixed (non-perfect) rate.
+  //   but Perfect Pair loses (not same-suit, so not a "perfect" pair).
   // banker's first two cards (AS,10H) are not a pair -> Banker Pair loses.
   // Player did not win, let alone with a 3-card 8 -> Panda 8 loses.
   const cards = [card('2', 'S'), card('A', 'S'), card('2', 'H'), card('10', 'H'), card('10', 'D'), card('6', 'C')];
@@ -184,8 +184,7 @@ describe('simulateHand - payout integration (main bet + all five side bets in on
     expect(byType['banker-pair'].won).toBe(false);
 
     expect(byType['perfect-pair']).toEqual(resolveSideBet(SIDE_BETS['perfect-pair'], 10, dealtHand));
-    expect(byType['perfect-pair'].won).toBe(true);
-    expect(byType['perfect-pair'].odds).toBe(5); // mixed-suit pair, not a perfect pair
+    expect(byType['perfect-pair'].won).toBe(false); // mixed-suit pair, not a perfect pair
 
     expect(byType['panda-8']).toEqual(resolveSideBet(SIDE_BETS['panda-8'], 15, dealtHand));
     expect(byType['panda-8'].won).toBe(false);

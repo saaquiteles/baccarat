@@ -6,7 +6,6 @@ import {
   DRAGON_7_ODDS,
   PANDA_8_ODDS,
   PERFECT_PAIR_ODDS,
-  MIXED_PAIR_ODDS,
 } from '../game/sideBets.js';
 
 /**
@@ -33,7 +32,7 @@ import {
 const SIDE_BET_ODDS_LABEL = {
   'player-pair': `${PLAYER_PAIR_ODDS}:1`,
   'banker-pair': `${BANKER_PAIR_ODDS}:1`,
-  'perfect-pair': `${PERFECT_PAIR_ODDS}:1 / ${MIXED_PAIR_ODDS}:1`,
+  'perfect-pair': `${PERFECT_PAIR_ODDS}:1`,
   'dragon-7': `${DRAGON_7_ODDS}:1`,
   'panda-8': `${PANDA_8_ODDS}:1`,
 };

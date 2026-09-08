@@ -9,7 +9,6 @@ import {
   PLAYER_PAIR_ODDS,
   BANKER_PAIR_ODDS,
   PERFECT_PAIR_ODDS,
-  MIXED_PAIR_ODDS,
   DRAGON_7_ODDS,
   PANDA_8_ODDS,
   resolveSideBet,
@@ -58,9 +57,9 @@ describe('PERFECT_PAIR', () => {
     expect(PERFECT_PAIR.evaluate(hand)).toEqual({ won: true, odds: PERFECT_PAIR_ODDS });
   });
 
-  it('pays mixed-pair odds when a pair exists but suits differ', () => {
+  it('loses when a pair exists but suits differ (not a perfect pair)', () => {
     const hand = { playerCards: [card('7', 'S'), card('7', 'H')], bankerCards: [card('2', 'S'), card('3', 'H')], winner: 'PLAYER' };
-    expect(PERFECT_PAIR.evaluate(hand)).toEqual({ won: true, odds: MIXED_PAIR_ODDS });
+    expect(PERFECT_PAIR.evaluate(hand)).toEqual({ won: false, odds: 0 });
   });
 
   it('checks the banker hand too, independent of the player hand', () => {
@@ -69,10 +68,10 @@ describe('PERFECT_PAIR', () => {
     expect(PERFECT_PAIR.evaluate(hand)).toEqual({ won: true, odds: PERFECT_PAIR_ODDS });
   });
 
-  it('prefers the perfect payout when one side is perfect and the other merely mixed', () => {
+  it('still wins when one side is perfect and the other is only a mixed-suit pair', () => {
     const hand = {
       playerCards: [card('7', 'S'), card('7', 'S')], // perfect
-      bankerCards: [card('9', 'S'), card('9', 'H')], // mixed
+      bankerCards: [card('9', 'S'), card('9', 'H')], // mixed-suit, doesn't qualify on its own
       winner: 'PLAYER',
     };
     expect(PERFECT_PAIR.evaluate(hand)).toEqual({ won: true, odds: PERFECT_PAIR_ODDS });

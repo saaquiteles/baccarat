@@ -90,35 +90,24 @@ export const BANKER_PAIR = Object.freeze({
 
 // ---------------------------------------------------------------------------
 // Perfect Pair - either the Player's or the Banker's first two cards form a
-// pair. A same-rank-and-suit ("perfect") pair pays 25:1; a same-rank,
-// different-suit pair pays 5:1.
+// same-rank-and-suit ("perfect") pair. Pays 25:1. A same-rank, different-suit
+// pair does not qualify - only Player Pair/Banker Pair pay on those.
 // ---------------------------------------------------------------------------
 export const PERFECT_PAIR_ODDS = 25;
-export const MIXED_PAIR_ODDS = 5;
 
 /** @type {SideBetDefinition} */
 export const PERFECT_PAIR = Object.freeze({
   id: 'perfect-pair',
   name: 'Perfect Pair',
-  description:
-    "Player's or Banker's first two cards are a pair. Same rank & suit (perfect) pays 25:1; " +
-    'same rank, different suit pays 5:1.',
+  description: "Player's or Banker's first two cards are the same rank and suit. Pays 25:1.",
   evaluate(hand) {
     const playerPair = initialTwoCards(hand.playerCards);
     const bankerPair = initialTwoCards(hand.bankerCards);
 
     const perfect = isSameRank(playerPair) && isSameSuit(playerPair)
       || (isSameRank(bankerPair) && isSameSuit(bankerPair));
-    if (perfect) {
-      return { won: true, odds: PERFECT_PAIR_ODDS };
-    }
 
-    const mixed = isSameRank(playerPair) || isSameRank(bankerPair);
-    if (mixed) {
-      return { won: true, odds: MIXED_PAIR_ODDS };
-    }
-
-    return { won: false, odds: 0 };
+    return { won: perfect, odds: perfect ? PERFECT_PAIR_ODDS : 0 };
   },
 });
 
