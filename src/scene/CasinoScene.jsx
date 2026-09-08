@@ -24,7 +24,7 @@ import { SHOE_BASE_POSITION, DISCARD_TRAY_POSITION, CHIP_RACK_POSITION, DEFAULT_
  *
  * @param {Object} props
  * @param {string} [props.activeView] - One of layout.js's CAMERA_VIEWS keys
- *   ('OVERHEAD_BETTING' | 'HAND_CLOSEUP' - only 'OVERHEAD_BETTING' is
+ *   ('VERTICAL_CLOSEUP' | 'HAND_CLOSEUP' - only 'VERTICAL_CLOSEUP' is
  *   manually selectable, see CAMERA_VIEW_IDS). Defaults to
  *   DEFAULT_CAMERA_VIEW. The camera eases toward this view every time it
  *   changes - see CameraRig.jsx.

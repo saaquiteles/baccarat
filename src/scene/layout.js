@@ -171,12 +171,28 @@ export const CHIP_RACK_POSITION = Object.freeze({
 /**
  * Reusable, named camera views. Each entry is a plain position/target/fov
  * description (not a live Three.js camera) - CameraRig.jsx reads these and
- * eases the actual render camera toward whichever one is active.
+ * eases the actual render camera toward whichever one is active. Every fov
+ * here is the *vertical* field of view tuned/verified at a 16:9 reference
+ * aspect - CameraRig.jsx compensates it per the canvas's actual aspect
+ * ratio (see effectiveFov there), so these numbers hold up across a
+ * portrait phone or an ultrawide monitor without being re-tuned per view.
  *
- * OVERHEAD_BETTING is the only view a player picks manually (see
- * CAMERA_VIEW_IDS below); HAND_CLOSEUP is driven automatically by
- * GameScreen.jsx's dealing-phase auto-follow (dealing/squeeze/settling), so
- * it's addressed directly by id rather than listed as a manual button.
+ * VERTICAL_CLOSEUP is the only view a player picks manually (see
+ * CAMERA_VIEW_IDS below) and doubles as the idle/betting default; HAND_CLOSEUP
+ * is driven automatically by GameScreen.jsx's dealing-phase auto-follow
+ * (dealing/squeeze/settling), so it's addressed directly by id rather than
+ * listed as a manual button.
+ *
+ * VERTICAL_CLOSEUP's target sits at x = 0 (mirrored across every betting
+ * spot and both hands) and z = the midpoint between the hand slots
+ * (HAND_SLOT_Z) and the side-bet row (BETTING_SPOTS['dragon-7'].z etc,
+ * 0.42) - a closer, more upright framing than a bird's-eye shot, sized to
+ * keep the widest betting spots (the side-bet row, x = +/-0.6) comfortably
+ * in frame while still reading as "close up" rather than a distant
+ * overhead view. Being on-center this way is also what keeps whichever
+ * hand is dealt centered in frame the moment play moves on to
+ * HAND_CLOSEUP, rather than the two views disagreeing about where "center"
+ * is.
  *
  * HAND_CLOSEUP frames the midpoint between PLAYER_HAND_SLOTS and
  * BANKER_HAND_SLOTS (x = 0, the shared HAND_SLOT_Z) - a single fixed
@@ -186,13 +202,13 @@ export const CHIP_RACK_POSITION = Object.freeze({
  * HAND_SLOT_SPACING either side of center, plus a card-width margin).
  */
 export const CAMERA_VIEWS = Object.freeze({
-  OVERHEAD_BETTING: Object.freeze({
-    id: 'OVERHEAD_BETTING',
-    name: 'Overhead Betting View',
-    description: 'Bird\'s-eye view of the whole felt, framing every betting spot.',
-    position: Object.freeze({ x: 0, y: 2.5, z: 0.05 }),
-    target: Object.freeze({ x: 0, y: TABLE.height, z: 0.05 }),
-    fov: 45,
+  VERTICAL_CLOSEUP: Object.freeze({
+    id: 'VERTICAL_CLOSEUP',
+    name: 'Vertical Close-Up View',
+    description: 'A closer, upright view of the felt and every betting spot - not a distant overhead shot.',
+    position: Object.freeze({ x: 0, y: 1.3, z: 0.95 }),
+    target: Object.freeze({ x: 0, y: FELT_Y + 0.01, z: 0.17 }),
+    fov: 49,
   }),
   HAND_CLOSEUP: Object.freeze({
     id: 'HAND_CLOSEUP',
@@ -210,7 +226,7 @@ export const CAMERA_VIEWS = Object.freeze({
 /** Stable iteration order for UI that lists/cycles through the *manually*
  * selectable camera views - deliberately excludes HAND_CLOSEUP, which is
  * only ever entered automatically (see the doc comment on CAMERA_VIEWS). */
-export const CAMERA_VIEW_IDS = Object.freeze(['OVERHEAD_BETTING']);
+export const CAMERA_VIEW_IDS = Object.freeze(['VERTICAL_CLOSEUP']);
 
 /** Camera view active when nothing else has been requested yet. */
-export const DEFAULT_CAMERA_VIEW = 'OVERHEAD_BETTING';
+export const DEFAULT_CAMERA_VIEW = 'VERTICAL_CLOSEUP';
