@@ -219,7 +219,14 @@ export const CAMERA_VIEWS = Object.freeze({
     // caught here: the previous position.y of 0.29 was *under* the table).
     position: Object.freeze({ x: 0, y: 1.0, z: 0.62 }),
     target: Object.freeze({ x: 0, y: FELT_Y + 0.01, z: HAND_SLOT_Z }),
-    fov: 32,
+    // fov was 32 - originally tuned/verified back when this canvas sat in a
+    // narrower side-panel layout (~1.55 aspect). Now that the table is a
+    // full-bleed canvas (16:9 or wider is the common case), that same fov
+    // put both hands' outer card slots right at the frame edges with no
+    // margin - a real bug a live screenshot caught, not just this view
+    // "changing" - widened so there's breathing room around both hands at
+    // the aspect this was re-verified against.
+    fov: 42,
   }),
 });
 
