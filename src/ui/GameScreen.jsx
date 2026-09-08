@@ -492,17 +492,20 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   const skipEnabled = dealPhase === 'dealing' || dealPhase === 'squeeze' || dealPhase === 'drawing';
   const skipLabel = dealPhase === 'dealing' ? 'Skip Deal' : dealPhase === 'squeeze' ? 'Reveal All' : 'Skip Draw';
 
-  // Once balance hits exactly 0 with no hand in progress AND nothing
-  // currently staged, no chip denomination is affordable (the smallest is 1
-  // - see getVisibleChipValues) and there's no bet to deal, so the betting
-  // board and Deal button would otherwise sit permanently disabled with no
-  // way forward. `totalWagered === 0` is essential here, not just belt-and-
-  // suspenders: staking an entire balance as a bet also drives balance to 0
-  // while it's staged and ready to deal - that's a normal step, not a dead
-  // end, and must not trigger this. Gated on dealPhase === 'idle' too, so
-  // this never appears mid-reveal/settle, only once a losing hand has fully
-  // finished displaying.
-  const isGameOver = balance === 0 && dealPhase === 'idle' && totalWagered === 0;
+  // Once balance drops below 1 (the smallest chip denomination - see
+  // getVisibleChipValues) with no hand in progress AND nothing currently
+  // staged, no chip denomination is affordable and there's no bet to deal,
+  // so the betting board and Deal button would otherwise sit permanently
+  // disabled with no way forward. `< 1` rather than `=== 0` because
+  // commission (5% on winning Banker bets) can leave a fractional balance
+  // - e.g. 0.25 - that's just as stuck as exactly 0, never enough to place
+  // even the smallest bet again. `totalWagered === 0` is essential here,
+  // not just belt-and-suspenders: staking an entire balance as a bet also
+  // drives balance to 0 (or below 1) while it's staged and ready to deal -
+  // that's a normal step, not a dead end, and must not trigger this. Gated
+  // on dealPhase === 'idle' too, so this never appears mid-reveal/settle,
+  // only once a losing hand has fully finished displaying.
+  const isGameOver = balance < 1 && dealPhase === 'idle' && totalWagered === 0;
 
   // Starts a brand new session in place - fresh shoe, starting balance,
   // empty roadmap history - rather than routing back through the menu, so
