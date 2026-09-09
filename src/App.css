@@ -179,7 +179,7 @@
 .casino-camera-btn--active {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: #1a1305;
 }
 
 @media (max-width: 560px) {
@@ -249,7 +249,7 @@
   cursor: pointer;
   border: 1.5px solid var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: #1a1305;
   box-shadow: var(--shadow);
   transition:
     transform 0.1s,
@@ -275,123 +275,251 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Loading screen                                                         */
+/* Engine loading screen (shown while GameScreen's lazy chunk loads - see  */
+/* src/ui/GameScreenLoader.jsx/EngineLoadingScreen.jsx/gameEnginePreload.js)*/
 /* ---------------------------------------------------------------------- */
+/* .engine-loader replaces .app-shell as the direct child GameScreenLoader
+ * renders into #root: it hosts the real (invisible-until-ready) GameScreen
+ * underneath this overlay, so the crossfade below is a real reveal of an
+ * already-warming-up table, never a swap between two separately-mounted
+ * screens. */
 
-.loading-screen {
-  flex-grow: 1;
+.engine-loader {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.engine-loader-game {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+}
+
+.engine-loader-game--visible {
+  opacity: 1;
+  transition: opacity 500ms ease;
+}
+
+.engine-loader-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  opacity: 1;
+}
+
+.engine-loader-overlay--fading {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease;
+}
+
+.engine-loading {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 32px;
+  gap: 28px;
   padding: 40px 24px;
   box-sizing: border-box;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(11, 107, 58, 0.28) 0%, transparent 60%), #07080b;
 }
 
-.loading-logo {
-  width: min(320px, 70%);
+.engine-loading-logo {
+  width: min(280px, 62%);
   height: auto;
-  animation: loading-logo-pulse 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 24px rgba(214, 162, 43, 0.35));
+  animation: engine-logo-pulse 2.2s ease-in-out infinite;
 }
 
-.loading-indicator {
-  display: flex;
-  gap: 12px;
-}
-
-.loading-chip {
-  width: 14px;
-  height: 14px;
+/* A spinning poker-chip disc built entirely from CSS (conic-gradient edge
+ * segments plus a felt-green face) rather than a generic ring spinner or a
+ * borrowed icon - the loading indicator is drawn from the game's own prop
+ * vocabulary (see src/scene/ChipStackMesh.jsx for the 3D equivalent). */
+.engine-loading-chip {
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
-  background: var(--accent);
-  animation: loading-chip-bounce 1s ease-in-out infinite;
+  background: conic-gradient(
+    from 0deg,
+    #d6a22b 0deg 30deg,
+    #f5eac2 30deg 60deg,
+    #d6a22b 60deg 90deg,
+    #f5eac2 90deg 120deg,
+    #d6a22b 120deg 150deg,
+    #f5eac2 150deg 180deg,
+    #d6a22b 180deg 210deg,
+    #f5eac2 210deg 240deg,
+    #d6a22b 240deg 270deg,
+    #f5eac2 270deg 300deg,
+    #d6a22b 300deg 330deg,
+    #f5eac2 330deg 360deg
+  );
+  padding: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  animation: engine-chip-spin 1.6s linear infinite;
 }
 
-.loading-chip:nth-child(2) {
-  animation-delay: 0.15s;
+.engine-loading-chip--ready {
+  animation-duration: 0.5s;
 }
 
-.loading-chip:nth-child(3) {
-  animation-delay: 0.3s;
+.engine-loading-chip-face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 32%, rgba(11, 107, 58, 0.95) 0%, rgba(5, 10, 33, 0.96) 82%);
+  box-shadow: inset 0 0 0 1px rgba(245, 234, 194, 0.15);
 }
 
-.loading-label {
-  color: var(--text);
+.engine-loading-bar-track {
+  width: min(320px, 80%);
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(214, 162, 43, 0.3);
+  overflow: hidden;
+}
+
+.engine-loading-bar-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #a1730f, #e8be5a);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 200ms linear;
+}
+
+.engine-loading-bar-fill--indeterminate {
+  width: 40%;
+  transform: none !important;
+  animation: engine-bar-sweep 1.3s ease-in-out infinite;
+}
+
+.engine-loading-label {
+  margin: 0;
+  font-family: var(--heading);
+  color: #f5eac2;
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
-@keyframes loading-logo-pulse {
+@keyframes engine-logo-pulse {
   0%,
   100% {
     opacity: 1;
     transform: scale(1);
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.88;
     transform: scale(0.97);
   }
 }
 
-@keyframes loading-chip-bounce {
-  0%,
-  80%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.5;
+@keyframes engine-chip-spin {
+  to {
+    transform: rotate(360deg);
   }
-  40% {
-    transform: translateY(-8px);
-    opacity: 1;
+}
+
+@keyframes engine-bar-sweep {
+  0% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(240%);
   }
 }
 
 /* ---------------------------------------------------------------------- */
 /* Menu screen                                                            */
 /* ---------------------------------------------------------------------- */
+/* Full-bleed and atmospheric like the game screen itself: a radial felt-
+ * green glow fading into the same near-black stage color as .casino-stage,
+ * so stepping from Menu into Play never feels like leaving one world for
+ * another. */
 
 .menu-screen {
-  flex-grow: 1;
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 36px;
-  padding: 40px 24px;
   box-sizing: border-box;
+  isolation: isolate;
+}
+
+.menu-screen-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(11, 107, 58, 0.32) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(214, 162, 43, 0.12) 0%, transparent 60%),
+    #07080b;
+}
+
+.menu-screen-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding: 48px 24px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .menu-logo {
-  width: min(380px, 80%);
+  width: min(360px, 78%);
   height: auto;
+  filter: drop-shadow(0 0 32px rgba(214, 162, 43, 0.28));
 }
 
 .menu-actions {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   width: 100%;
-  max-width: 280px;
+  max-width: 300px;
 }
 
 .menu-action {
-  border-radius: 8px;
-  padding: 14px 22px;
-  font-weight: 600;
-  font-size: 16px;
+  border-radius: 999px;
+  padding: 15px 22px;
+  font-family: var(--heading);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
-  border: 2px solid var(--border);
-  background: var(--bg);
-  color: var(--text-h);
+  border: 1.5px solid rgba(214, 162, 43, 0.45);
+  background: rgba(10, 12, 16, 0.55);
+  backdrop-filter: blur(6px);
+  color: #f5eac2;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   transition:
     border-color 0.15s,
+    box-shadow 0.15s,
     transform 0.1s;
 }
 
 .menu-action:hover {
-  border-color: var(--accent);
+  border-color: #e8be5a;
+  box-shadow: 0 0 0 3px rgba(214, 162, 43, 0.18), 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
 .menu-action:active {
@@ -399,19 +527,27 @@
 }
 
 .menu-action--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  background: linear-gradient(135deg, #e8be5a, #a1730f);
+  border-color: #e8be5a;
+  color: #1a1305;
+  box-shadow: 0 4px 16px rgba(214, 162, 43, 0.35);
+}
+
+.menu-action--primary:hover {
+  box-shadow: 0 0 0 3px rgba(232, 190, 90, 0.28), 0 4px 16px rgba(214, 162, 43, 0.35);
 }
 
 .how-to-play {
   max-width: 560px;
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  border: 1px solid rgba(214, 162, 43, 0.35);
+  border-radius: 14px;
   padding: 20px 24px;
   text-align: left;
-  color: var(--text);
+  color: #cfc9d6;
+  background: rgba(6, 8, 14, 0.72);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -420,10 +556,11 @@
 
 .how-to-play h2 {
   margin: 0;
+  color: #f5eac2;
 }
 
 .how-to-play strong {
-  color: var(--text-h);
+  color: #f5eac2;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -431,7 +568,9 @@
 /* ---------------------------------------------------------------------- */
 
 .settings-screen {
-  flex-grow: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -866,7 +1005,7 @@
 .board-action--deal {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: #1a1305;
 }
 
 .betting-board .board-action {
@@ -1058,7 +1197,7 @@
 .game-over-action--primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: #1a1305;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1212,8 +1351,7 @@
     padding: 20px 18px 32px;
   }
 
-  .menu-screen,
-  .loading-screen {
+  .menu-screen-content {
     padding: 28px 18px;
   }
 }
