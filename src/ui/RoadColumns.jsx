@@ -13,9 +13,9 @@
  * this non-animated prototype.
  */
 
-// Sized for a compact corner HUD widget (see .hud-roadmaps in App.css),
-// not a full dashboard section - small enough that both roadmaps fit in a
-// pocket of screen the table can otherwise keep.
+// Sized for a compact column inside the betting board's HUD bar (see
+// .betting-board-roadmaps in App.css), not a full dashboard section -
+// small enough that both roadmaps fit in the same docked bar as the bets.
 export const CELL_SIZE = 16;
 
 function RoadColumns({ columns, rows = 6, renderCell, emptyLabel, className = '' }) {

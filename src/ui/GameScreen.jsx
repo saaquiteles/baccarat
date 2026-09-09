@@ -7,7 +7,6 @@ import { SIDE_BETS } from '../game/sideBets.js';
 import buriccatLogo from '../assets/logos/buriccat-logo-horizontal.svg';
 import BettingBoard from './BettingBoard.jsx';
 import ResultOverlay from './ResultOverlay.jsx';
-import RoadmapPanel from './RoadmapPanel.jsx';
 import GameOverScreen from './GameOverScreen.jsx';
 import CasinoScene from '../scene/CasinoScene.jsx';
 import TableAnimationLayer from '../scene/TableAnimationLayer.jsx';
@@ -612,31 +611,24 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
         </header>
 
         <div className="hud-bottom-dock">
-          {/* A three-segment row so the skip control stays dead-centered
-           * regardless of the roadmap widget's width, with the roadmap
-           * widget itself flush to the bottom-right - both sitting exactly
-           * above the betting board in normal flow (see the comment on
-           * .hud-bottom-dock in App.css for why that matters). */}
-          <div className="hud-bottom-row">
-            <div className="hud-bottom-row-spacer" aria-hidden="true" />
-            <div className="hud-bottom-row-center">
-              {skipEnabled && (
-                <div className="hud-skip">
-                  <button type="button" className="casino-skip-btn" onClick={skip}>
-                    {skipLabel}
-                  </button>
-                  {dealPhase === 'squeeze' && (
-                    <p className="casino-stage-hint">
-                      Drag a hand's cards upward to squeeze it, or reveal both instantly.
-                    </p>
-                  )}
-                </div>
+          {/* The skip control is the only thing left in its own row above
+           * the betting board - the roadmap widget now lives *inside*
+           * BettingBoard itself (see .betting-board-roadmaps in App.css)
+           * instead of floating over the felt above it, so it can never
+           * cover a dealt card on a small screen where the docked HUD bar
+           * already occupies a large share of the canvas. */}
+          {skipEnabled && (
+            <div className="hud-skip">
+              <button type="button" className="casino-skip-btn" onClick={skip}>
+                {skipLabel}
+              </button>
+              {dealPhase === 'squeeze' && (
+                <p className="casino-stage-hint">
+                  Drag a hand's cards upward to squeeze it, or reveal both instantly.
+                </p>
               )}
             </div>
-            <div className="hud-roadmaps">
-              <RoadmapPanel history={history} />
-            </div>
-          </div>
+          )}
 
           <div className="hud-betting">
             <BettingBoard
@@ -651,6 +643,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
               onDeal={deal}
               canDeal={canDeal}
               locked={bettingLocked}
+              history={history}
             />
           </div>
         </div>

@@ -208,31 +208,6 @@
     max(12px, env(safe-area-inset-left));
 }
 
-/* Skip control (centered) and the roadmap widget (flush right) share one
- * row directly above the betting board - a spacer mirrors the roadmap
- * widget's own width so the skip control stays visually centered on the
- * table rather than drifting left of true-center once the roadmap widget
- * claims space on the right. */
-.hud-bottom-row {
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.hud-bottom-row-spacer {
-  flex: 1 1 140px;
-  max-width: 300px;
-}
-
-.hud-bottom-row-center {
-  flex: 3 1 auto;
-  min-width: 0;
-  display: flex;
-  justify-content: center;
-}
-
 .hud-skip {
   display: flex;
   flex-direction: column;
@@ -724,8 +699,8 @@
   backdrop-filter: blur(10px);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
   display: grid;
-  grid-template-columns: minmax(120px, auto) 1fr minmax(110px, auto);
-  grid-template-areas: 'balance mainbets actions' 'chips sidebets actions';
+  grid-template-columns: minmax(120px, auto) 1fr minmax(110px, auto) minmax(130px, 200px);
+  grid-template-areas: 'balance mainbets actions roadmaps' 'chips sidebets actions roadmaps';
   align-items: center;
   column-gap: 18px;
   row-gap: 4px;
@@ -1201,22 +1176,25 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* HUD: roadmaps - a landscape (wider-than-tall) corner widget docked      */
-/* bottom-right, directly above the betting board, with Bead Plate        */
-/* stacked above Big Road rather than side by side: each roadmap gets the */
-/* widget's full width for its own horizontal scroll instead of splitting */
-/* it in half, which matters most for Big Road's potentially long streaks.*/
+/* Betting board: roadmaps - docked in its own column inside the same     */
+/* opaque HUD bar as the bet spots (see .betting-board's grid above), not */
+/* a widget floating over the felt above it - so it can never additionally*/
+/* cover a dealt card on a small screen. Bead Plate stacked above Big Road */
+/* rather than side by side: each roadmap gets the column's full width for */
+/* its own horizontal scroll instead of splitting it in half, which       */
+/* matters most for Big Road's potentially long streaks.                  */
 /* ---------------------------------------------------------------------- */
 
-.hud-roadmaps {
-  flex: 1 1 140px;
-  max-width: 300px;
+.betting-board-roadmaps {
+  grid-area: roadmaps;
+  align-self: stretch;
   display: flex;
-  justify-content: flex-end;
+  min-height: 0;
 }
 
 .roadmap-panel {
   width: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(214, 162, 43, 0.35);
@@ -1252,6 +1230,8 @@
   flex-direction: column;
   gap: 6px;
   padding: 0 12px 10px;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .roadmap {
@@ -1357,20 +1337,16 @@
 }
 
 @media (max-width: 720px) {
-  .hud-roadmaps {
-    max-width: min(calc(100% - 24px), 240px);
-  }
-
   .app-subtitle {
     display: none;
   }
 
   .betting-board {
     grid-template-columns: 1fr;
-    grid-template-areas: 'balance' 'chips' 'mainbets' 'sidebets' 'actions';
+    grid-template-areas: 'balance' 'chips' 'mainbets' 'sidebets' 'actions' 'roadmaps';
     justify-items: center;
     row-gap: 8px;
-    max-height: 46vh;
+    max-height: 58vh;
     overflow-y: auto;
     border-radius: 14px 14px 0 0;
   }
@@ -1379,6 +1355,11 @@
   .chip-tray {
     justify-content: center;
     width: 100%;
+  }
+
+  .betting-board-roadmaps {
+    width: 100%;
+    max-width: 320px;
   }
 
   .board-actions {

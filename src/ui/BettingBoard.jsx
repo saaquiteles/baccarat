@@ -8,6 +8,7 @@ import {
   PANDA_8_ODDS,
   PERFECT_PAIR_ODDS,
 } from '../game/sideBets.js';
+import RoadmapPanel from './RoadmapPanel.jsx';
 
 /**
  * BettingBoard.jsx
@@ -63,6 +64,7 @@ function BettingBoard({
   onDeal,
   canDeal,
   locked = false,
+  history,
 }) {
   const totalWagered =
     Object.values(mainBetAmounts).reduce((a, b) => a + b, 0) +
@@ -181,6 +183,14 @@ function BettingBoard({
         <button type="button" className="board-action board-action--deal" onClick={onDeal} disabled={!canDeal}>
           Deal
         </button>
+      </div>
+
+      {/* In line with the rest of the betting UI, inside the same docked
+       * HUD bar - not a separate widget floating over the felt above it,
+       * so it can never cover a dealt card on a small screen (see
+       * .betting-board-roadmaps in App.css). */}
+      <div className="betting-board-roadmaps">
+        <RoadmapPanel history={history} />
       </div>
     </section>
   );

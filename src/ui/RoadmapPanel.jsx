@@ -11,10 +11,12 @@ import BigRoad from './BigRoad.jsx';
  * `result.winner` values the rules engine has emitted this shoe - every
  * roadmap below is recomputed from it and only it.
  *
- * Rendered as a compact corner HUD widget over the 3D table (see
- * .hud-roadmaps in App.css), not a full-width dashboard section, so it
- * starts collapsed to a small tab on narrow screens where every pixel of
- * table view matters - expanding it is one tap, never required to play.
+ * Rendered inside BettingBoard's own docked HUD bar (see
+ * .betting-board-roadmaps in App.css), not as a separate widget floating
+ * over the felt - keeping it inside the same opaque bar the betting spots
+ * already sit in means it can never additionally cover a dealt card on a
+ * small screen. Collapsible via its own toggle so it never forces extra
+ * scroll height when the bar is already tight on narrow screens.
  */
 
 function RoadmapPanel({ history }) {
