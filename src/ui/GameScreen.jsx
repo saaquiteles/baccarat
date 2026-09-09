@@ -26,6 +26,7 @@ import { representativeChip } from '../scene/chipBreakdown.js';
 import { CARD_DEAL_STAGGER, CARD_FLIGHT_DURATION, SETTLE_DISPLAY_DURATION } from '../scene/animationTiming.js';
 import { getVisibleChipValues } from './constants.js';
 import { useCasinoAudio } from '../audio/useCasinoAudio.js';
+import { useHudInsets } from './useHudInsets.js';
 
 const EMPTY_MAIN_BETS = Object.fromEntries(Object.values(MAIN_BET_TYPES).map((type) => [type, 0]));
 const EMPTY_SIDE_BETS = Object.fromEntries(Object.keys(SIDE_BETS).map((id) => [id, 0]));
@@ -88,6 +89,13 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   const [cameraView, setCameraView] = useState(DEFAULT_CAMERA_VIEW);
 
   const audio = useCasinoAudio();
+
+  // Measures the topbar/bottom-dock's live pixel height so the camera can
+  // keep the felt/cards framed within whatever canvas area isn't covered by
+  // that opaque HUD chrome - see useHudInsets.js and CameraRig.jsx.
+  const topbarRef = useRef(null);
+  const bottomDockRef = useRef(null);
+  const hudInsets = useHudInsets(topbarRef, bottomDockRef);
 
   // Opens the very first betting round of the session - every subsequent
   // "place your bets" moment is spoken from the settle->idle transition in
@@ -540,7 +548,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   return (
     <div className="app-shell">
       <section className="casino-stage" aria-label="3D table view">
-        <CasinoScene activeView={cameraView}>
+        <CasinoScene activeView={cameraView} hudInsets={hudInsets}>
           <TableAnimationLayer
             playerCards={playerCards}
             bankerCards={bankerCards}
@@ -566,7 +574,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
          * never a separate document section beside/below it - see
          * .hud-* in App.css for the overlay positioning. */}
 
-        <header className="hud-topbar">
+        <header className="hud-topbar" ref={topbarRef}>
           {onExit && (
             <button type="button" className="app-header-back" onClick={onExit}>
               &larr; Menu
@@ -610,7 +618,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
           </div>
         </header>
 
-        <div className="hud-bottom-dock">
+        <div className="hud-bottom-dock" ref={bottomDockRef}>
           {/* The skip control is the only thing left in its own row above
            * the betting board - the roadmap widget now lives *inside*
            * BettingBoard itself (see .betting-board-roadmaps in App.css)

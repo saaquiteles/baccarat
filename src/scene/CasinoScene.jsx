@@ -30,6 +30,12 @@ import { SHOE_BASE_POSITION, DISCARD_TRAY_POSITION, CHIP_RACK_POSITION, DEFAULT_
  *   changes - see CameraRig.jsx.
  * @param {string} [props.feltColor] - Optional felt color override (e.g.
  *   for a blue-felt table); defaults to the standard casino green.
+ * @param {{top: number, bottom: number}} [props.hudInsets] - Live pixel
+ *   height of the topbar/bottom-dock HUD chrome overlaid on this canvas
+ *   (see useHudInsets.js) - forwarded to CameraRig so it can keep the felt/
+ *   cards framed within the still-visible canvas area rather than centering
+ *   the shot in the full canvas regardless of how much of it the docked
+ *   betting board currently covers.
  * @param {import('react').ReactNode} [props.children] - Dynamic in-play
  *   content (dealt cards, chip stacks, chip-flight animations) rendered
  *   inside the same <Canvas>/Suspense boundary as the static room, owned by
@@ -37,13 +43,13 @@ import { SHOE_BASE_POSITION, DISCARD_TRAY_POSITION, CHIP_RACK_POSITION, DEFAULT_
  *   TableAnimationLayer usage) - this component never builds that content
  *   itself.
  */
-function CasinoScene({ activeView = DEFAULT_CAMERA_VIEW, feltColor, children }) {
+function CasinoScene({ activeView = DEFAULT_CAMERA_VIEW, feltColor, hudInsets, children }) {
   return (
     <Canvas shadows="percentage" dpr={[1, 2]} gl={{ antialias: true }}>
       <color attach="background" args={['#07080b']} />
       <fog attach="fog" args={['#07080b', 6, 14]} />
 
-      <CameraRig activeView={activeView} />
+      <CameraRig activeView={activeView} hudInsets={hudInsets} />
       <Lighting />
 
       <Suspense fallback={null}>
