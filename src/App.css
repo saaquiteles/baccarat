@@ -283,7 +283,14 @@
 .engine-loader-overlay {
   position: absolute;
   inset: 0;
-  z-index: 10;
+  /* Higher than every HUD layer inside the GameScreen it's covering
+   * (.hud-topbar/.hud-bottom-dock are z-index: 20) - otherwise, the instant
+   * the game underneath starts fading in (--visible, opacity ramping off
+   * 0), its own opaque-ish HUD chrome would stack *above* this overlay
+   * instead of staying hidden beneath it, showing both screens' text
+   * tangled together mid-crossfade instead of one cleanly fading over a
+   * still-hidden game. */
+  z-index: 100;
   opacity: 1;
 }
 
@@ -296,19 +303,24 @@
 .engine-loading {
   width: 100%;
   height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 28px;
-  padding: 40px 24px;
+  gap: clamp(12px, 4vh, 28px);
+  padding: 24px;
   box-sizing: border-box;
   background:
     radial-gradient(ellipse at 50% 38%, rgba(11, 107, 58, 0.28) 0%, transparent 60%), #07080b;
 }
 
 .engine-loading-logo {
-  width: min(280px, 62%);
+  /* Bounded by viewport height too (not just width) - a short landscape
+   * phone shrinks the logo instead of pushing the spinner/bar/label below
+   * the fold (overflow-y above is the last-resort safety net, not the
+   * primary fit). */
+  width: min(280px, 62%, 28vh);
   height: auto;
   filter: drop-shadow(0 0 24px rgba(214, 162, 43, 0.35));
   animation: engine-logo-pulse 2.2s ease-in-out infinite;
@@ -452,14 +464,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 40px;
-  padding: 48px 24px;
+  gap: clamp(16px, 5vh, 40px);
+  padding: clamp(24px, 6vh, 48px) 24px;
   box-sizing: border-box;
   width: 100%;
 }
 
 .menu-logo {
-  width: min(360px, 78%);
+  /* Bounded by viewport height too (not just width) - a short landscape
+   * phone shrinks the logo instead of relying solely on this screen's own
+   * overflow-y scroll to reach the buttons below it. */
+  width: min(360px, 78%, 34vh);
   height: auto;
   filter: drop-shadow(0 0 32px rgba(214, 162, 43, 0.28));
 }
