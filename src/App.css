@@ -699,7 +699,14 @@
   backdrop-filter: blur(10px);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
   display: grid;
-  grid-template-columns: minmax(120px, auto) 1fr minmax(110px, auto) minmax(130px, 200px);
+  /* The balance/chips column is a fixed 210px, not minmax(..., auto) - the
+   * chip tray only ever shows however many denominations the current
+   * balance affords (see getVisibleChipValues), and an `auto` track would
+   * shrink this whole column (and reflow every other column beside it)
+   * every time that count changes, most noticeably going all-in, when it
+   * can drop to a single chip. 210px is sized to fit all 5 chips in one row
+   * (5 * 36px + 4 * 6px gap = 204px) so the column never has to grow either. */
+  grid-template-columns: 210px 1fr minmax(110px, auto) minmax(130px, 200px);
   grid-template-areas: 'balance mainbets actions roadmaps' 'chips sidebets actions roadmaps';
   align-items: center;
   column-gap: 18px;
