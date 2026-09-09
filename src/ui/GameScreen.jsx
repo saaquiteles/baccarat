@@ -23,7 +23,12 @@ import {
 } from '../scene/layout.js';
 import { CHIP_DENOMINATION_COLORS } from '../scene/materials.js';
 import { representativeChip } from '../scene/chipBreakdown.js';
-import { CARD_DEAL_STAGGER, CARD_FLIGHT_DURATION, SETTLE_DISPLAY_DURATION } from '../scene/animationTiming.js';
+import {
+  CARD_DEAL_STAGGER,
+  CARD_FLIGHT_DURATION,
+  SETTLE_DISPLAY_DURATION,
+  RESULT_OVERLAY_AUTO_DISMISS_DURATION,
+} from '../scene/animationTiming.js';
 import { getVisibleChipValues } from './constants.js';
 import { useCasinoAudio } from '../audio/useCasinoAudio.js';
 import { useHudInsets } from './useHudInsets.js';
@@ -129,6 +134,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   const pendingOutcomeRef = useRef(null);
   const dealTimelineRef = useRef(null);
   const settleDelayRef = useRef(null);
+  const overlayAutoDismissRef = useRef(null);
   const flightIdRef = useRef(0);
 
   // Kill every in-flight GSAP handle on unmount - nothing should keep
@@ -137,6 +143,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     () => () => {
       dealTimelineRef.current?.kill();
       settleDelayRef.current?.kill();
+      overlayAutoDismissRef.current?.kill();
     },
     []
   );
@@ -389,6 +396,18 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
       setLastResult(outcome.result);
       setLastPayout(outcome.payout);
       setOverlayVisible(true);
+
+      // Auto-dismiss after a fixed window rather than requiring a manual
+      // close - long enough to read the payout breakdown, short enough
+      // that it never lingers into the next hand (see
+      // RESULT_OVERLAY_AUTO_DISMISS_DURATION's own doc comment). The
+      // player's own dismiss button still works at any time before this
+      // fires.
+      overlayAutoDismissRef.current?.kill();
+      overlayAutoDismissRef.current = gsap.delayedCall(RESULT_OVERLAY_AUTO_DISMISS_DURATION, () => {
+        setOverlayVisible(false);
+      });
+
       setMainBetAmounts(EMPTY_MAIN_BETS);
       setSideBetAmounts(EMPTY_SIDE_BETS);
       setDealPhase('settling');
@@ -520,6 +539,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   const resetGame = useCallback(() => {
     dealTimelineRef.current?.kill();
     settleDelayRef.current?.kill();
+    overlayAutoDismissRef.current?.kill();
     pendingOutcomeRef.current = null;
     audio.resetForNewHand();
 
@@ -661,7 +681,10 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
         result={lastResult}
         payout={lastPayout}
         visible={overlayVisible}
-        onDismiss={() => setOverlayVisible(false)}
+        onDismiss={() => {
+          overlayAutoDismissRef.current?.kill();
+          setOverlayVisible(false);
+        }}
       />
 
       {isGameOver && <GameOverScreen onTryAgain={resetGame} onExit={onExit} />}

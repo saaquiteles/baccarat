@@ -29,6 +29,13 @@ export const SQUEEZE_SPRING_BACK_DURATION = 0.35;
  * next deal (cards fading/moving off, chips settled). */
 export const SETTLE_DISPLAY_DURATION = 1.3;
 
+/** Seconds the win/lose result overlay (see ResultOverlay.jsx) stays up
+ * before auto-dismissing on its own - long enough to actually read the
+ * payout breakdown, short enough that it never lingers into the next hand's
+ * betting/dealing. The player can still dismiss it early via its close
+ * button; this is only the "if nobody touches it" ceiling. */
+export const RESULT_OVERLAY_AUTO_DISMISS_DURATION = 6;
+
 export function clamp01(value) {
   return Math.min(1, Math.max(0, value));
 }
