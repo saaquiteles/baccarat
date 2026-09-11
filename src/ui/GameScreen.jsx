@@ -150,14 +150,22 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
 
   // Auto-follow the camera to whichever named view best shows what's
   // currently happening, so the player doesn't have to manually reach for a
-  // tight view every time a card comes out of the shoe: overhead for
-  // betting, and the tight Hand Close-Up View for the entire
-  // dealing/squeeze/settling stretch (cards flying in, being squeezed, and
-  // sitting revealed), easing back to overhead the moment play returns to
-  // idle. Driven inline during render (comparing against the last
-  // *processed* phase, tracked in state rather than a ref - refs can't be
-  // read/written during render) rather than in a useEffect, matching
-  // React's documented "adjusting state when a prop changes" pattern:
+  // tight view every time a card comes out of the shoe: the wider Vertical
+  // Close-Up View for betting *and* the initial deal (HAND_CLOSEUP's tight
+  // hand-only framing is zoomed/centered so tightly on the card slots that
+  // every betting spot - including the one the player just staked - falls
+  // outside its horizontal frustum entirely, which reads as "my chips
+  // disappeared" the instant Deal is clicked; verified via camera-projection
+  // math, not just eyeballed - HAND_CLOSEUP's own fov ceiling can't be raised
+  // far enough to include a spot at x=+/-0.45 without abandoning the tight
+  // card framing that was itself a previously-fixed bug, see layout.js), then
+  // the tight Hand Close-Up View once there's actually a hand on the felt to
+  // read closely (squeeze/drawing/settling), easing back to the wider view
+  // the moment play returns to idle. Driven inline during render (comparing
+  // against the last *processed* phase, tracked in state rather than a ref -
+  // refs can't be read/written during render) rather than in a useEffect,
+  // matching React's documented "adjusting state when a prop changes"
+  // pattern:
   // https://react.dev/learn/you-might-not-need-an-effect#adjusting-state-based-on-a-prop-or-state-change.
   // Only fires on a phase *transition*, so a player who manually picks a
   // different view mid-phase to look around isn't fought - the next phase
@@ -165,7 +173,8 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   const [lastAutoCameraPhase, setLastAutoCameraPhase] = useState(null);
   if (lastAutoCameraPhase !== dealPhase) {
     setLastAutoCameraPhase(dealPhase);
-    setCameraView(dealPhase === 'idle' ? DEFAULT_CAMERA_VIEW : 'HAND_CLOSEUP');
+    const wantsHandCloseup = dealPhase === 'squeeze' || dealPhase === 'drawing' || dealPhase === 'settling';
+    setCameraView(wantsHandCloseup ? 'HAND_CLOSEUP' : DEFAULT_CAMERA_VIEW);
   }
 
   // Chip tray denominations scale with balance (see getVisibleChipValues) -
