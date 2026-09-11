@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createAudioEngine } from './audioEngine.js';
 import { VOICE_CUES, resolveVoiceLine } from './voiceLines.js';
+import { pickAnnouncerVoice, ANNOUNCER_PITCH, ANNOUNCER_RATE } from './announcerVoice.js';
 
 /**
  * useCasinoAudio.js
@@ -87,8 +88,10 @@ export function useCasinoAudio() {
 
     const utterance = new window.SpeechSynthesisUtterance(text);
     utterance.volume = engine.getVoiceVolume();
-    utterance.rate = 0.98;
-    utterance.pitch = 0.95;
+    utterance.rate = ANNOUNCER_RATE;
+    utterance.pitch = ANNOUNCER_PITCH;
+    const announcerVoice = pickAnnouncerVoice();
+    if (announcerVoice) utterance.voice = announcerVoice;
 
     const set = pendingUtterancesRef.current;
     set.add(utterance);
@@ -130,6 +133,7 @@ export function useCasinoAudio() {
       cardSlide: (x) => engineRef.current?.cardSlide(x),
       cardFlip: (x) => engineRef.current?.cardFlip(x),
       shoeSlide: (x) => engineRef.current?.shoeSlide(x),
+      shuffle: (x) => engineRef.current?.shuffle(x),
       chipClink: (x, amount) => engineRef.current?.chipClink(x, amount),
     }),
     []
