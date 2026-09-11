@@ -5,7 +5,15 @@ import MenuScreen from './ui/MenuScreen.jsx';
 import SettingsScreen from './ui/SettingsScreen.jsx';
 import GameScreenLoader from './ui/GameScreenLoader.jsx';
 import { startGameEnginePreload } from './ui/gameEnginePreload.js';
+import { useBackgroundMusic } from './audio/useBackgroundMusic.js';
+import casinoMusicUrl from './assets/audio/noirjazzcasinomusic.mp3';
 import './App.css';
+
+/** Ambient music is quiet on the menu (it's meant to be felt, not noticed
+ * over the UI) and quieter still on the game screen, where it needs to sit
+ * well under the card/chip SFX and the dealer's spoken lines. */
+const MENU_MUSIC_VOLUME = 0.25;
+const GAME_MUSIC_VOLUME = 0.12;
 
 /**
  * App.jsx
@@ -35,6 +43,8 @@ function App() {
   const goToMenu = useCallback(() => setScreen('menu'), []);
   const goToSettings = useCallback(() => setScreen('settings'), []);
   const goToGame = useCallback(() => setScreen('game'), []);
+
+  useBackgroundMusic(casinoMusicUrl, screen === 'game' ? GAME_MUSIC_VOLUME : MENU_MUSIC_VOLUME);
 
   // Start fetching GameScreen's chunk as soon as the menu is reachable -
   // well before Play is actually clicked - so it's usually already loaded
