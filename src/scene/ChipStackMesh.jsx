@@ -21,6 +21,24 @@ const HIDDEN_Y = -10; // parked far below the felt for unused instance slots
  * mesh - unused instance slots are parked off-scene with a zeroed scale
  * rather than the instancedMesh being resized, following the same
  * single-instancedMesh-per-repeated-geometry pattern as ChipRack.jsx.
+ *
+ * `frustumCulled={false}`: this spot's very first mount is almost always
+ * with `amount === 0` (no bet staged yet), so THREE.InstancedMesh's own
+ * lazily-computed `boundingSphere` - correct only at the moment it's first
+ * read, then cached forever, not invalidated by later `setMatrixAt` calls -
+ * gets permanently baked in around the all-hidden (scale-0, y = HIDDEN_Y)
+ * state. Every later bet then updates the *instance matrices* correctly, but
+ * the camera keeps culling the whole mesh against that stale, effectively
+ * empty sphere - so the stack silently never renders once a real bet lands,
+ * confirmed live via a frustum-intersection probe against the real render
+ * camera (returned false in every state once a bet existed, matching the
+ * always-invisible resting stack - only the transient ChipFlight throw,
+ * a separate non-instanced mesh with a normal geometry bounding sphere, was
+ * ever visible). Disabling frustum culling is cheap here - at most
+ * CHIP_STACK_VISUAL_CAP (18) low-poly cylinders per betting spot - and
+ * sidesteps the stale-cache issue entirely rather than trying to keep a
+ * manual `computeBoundingSphere()` call in sync with every future change to
+ * this component's instance-matrix logic.
  */
 function ChipStackMesh({ position, amount }) {
   const instancedRef = useRef(null);
@@ -64,6 +82,7 @@ function ChipStackMesh({ position, amount }) {
       <instancedMesh
         ref={instancedRef}
         args={[chipGeometry, undefined, CHIP_STACK_VISUAL_CAP]}
+        frustumCulled={false}
         castShadow
         receiveShadow
       >
