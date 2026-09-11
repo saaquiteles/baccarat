@@ -4,18 +4,14 @@ A 3D Punto Banco (Baccarat) browser game built with React, React Three Fiber, an
 
 ## Current status
 
-The core game is playable end-to-end. Of the seven planned subsystems, four are built and verified; three are not started.
-
-**Built:**
+The core game is playable end-to-end. All seven planned subsystems are built and verified.
 - **Rules engine** — full Punto Banco rules (8-deck shoe, CSPRNG-backed Fisher-Yates shuffle, burn/cut-card procedure, the complete Player/Banker drawing tableau), both a standard 5%-commission ruleset and a no-commission (Banker-6-pays-1:2) ruleset, and all five standard side bets (Player Pair, Banker Pair, Perfect Pair, Dragon 7, Panda 8). Covered by 111 automated tests (`src/game/`, `tests/game/`).
 - **2D UI** — betting board with oval bet spots, a chip tray whose denominations scale dynamically with balance (spam-clicking a spot auto-downgrades to the largest affordable chip, so you can always go exactly all-in), a payout/result toast, Bead Plate and Big Road roadmaps, and a Game Over / Try Again flow when your balance hits zero. (Big Eye Boy, Small Road, and Cockroach Pig were deliberately left out as unnecessary for a simple table.)
 - **3D scene** — a procedurally-built casino table (felt, wood rail, brass trim, chip rack, dealing shoe, discard tray), a lighting rig with a restrained bloom pass, and a single overhead camera for betting that automatically eases into a tight, legible close-up on the cards during dealing, squeezing, and settling.
 - **Card & chip animation** — cards deal in true casino order (Player, Banker, Player, Banker), reveal via a drag-to-squeeze gesture (or a Skip/Reveal-All button) on a custom vertex-shader card, and only *then* does the dealer decide whether to hit — matching real play, not dealing every card up front. Chips throw and rake between the rack, the felt, and the discard tray.
-
-**Not started yet:**
-- **Audio** — no sound at all yet (SFX, dealer voice lines, ambience).
-- **Formal RNG/statistical audit** — the unit test suite is thorough, but there's no dedicated Monte Carlo house-edge simulation or stress-test suite yet.
-- **Performance pass** — no texture compression, mesh instancing beyond what's already in the chip rack/stacks, or JS bundle code-splitting (the production bundle is currently ~1.4 MB unsplit — Vite flags this on every build).
+- **Audio** — card/chip SFX are real sample playback (a CC0 Kenney.nl pack, see `src/assets/audio/`), picked per stack-size/action with a little playback-rate jitter so repeats don't sound identical. Dealer/announcer lines are spoken via the Web Speech API with a female voice selected by name heuristic and pitch/rate tuned for a lower, slower delivery (`src/audio/announcerVoice.js`). No ambient bed yet.
+- **RNG/statistical audit** — a seeded-PRNG Monte Carlo house-edge regression test (`tests/game/houseEdge.test.js`) alongside the rules-engine unit suite.
+- **Performance pass** — chip rack/stacks use `instancedMesh` instead of per-chip meshes, GameScreen's ~1.2 MB React Three Fiber/GSAP dependency chunk is lazy-loaded behind a real, byte-tracked loading screen rather than blocking the initial bundle (see `src/ui/gameEnginePreload.js`).
 
 ## Tech stack
 
@@ -53,8 +49,10 @@ src/
                  No React/rendering imports; runs headlessly under Node.
   scene/        The 3D table: geometry, materials, lighting, camera, card/chip animation.
                  React Three Fiber components; spatial anchors centralized in layout.js.
-  ui/           2D screens and HUD: Loading, Menu, Settings, the Game screen (betting board,
-                 roadmaps, result toast, Game Over modal).
+  ui/           2D screens and HUD: Menu, Settings, the Game screen (betting board, roadmaps,
+                 result toast, Game Over modal) and the real, byte-tracked loading screen.
+  audio/        Card/chip sample playback and Web Speech API dealer/announcer voice lines.
+  assets/audio/ The CC0 Kenney.nl sample pack (see KENNEY_LICENSE.txt).
 tests/game/     Unit tests for src/game/, mirroring its file names.
 ```
 
@@ -62,6 +60,6 @@ tests/game/     Unit tests for src/game/, mirroring its file names.
 
 ## Known limitations
 
-- No audio yet.
+- No ambient background bed (card/chip SFX and dealer voice lines are covered - see Current status).
 - No save/persistence — balance and shoe state reset on page reload.
-- The production JS bundle isn't code-split yet (~1.4 MB); this is exactly what a future performance pass is meant to address.
+- No texture compression or KTX2/Basis pipeline (materials are procedural, so this hasn't been a priority).
