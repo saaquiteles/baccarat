@@ -1,16 +1,20 @@
 /**
  * audioEngine.js
  * ---------------------------------------------------------------------------
- * All SFX in Buriccat are synthesized live via the Web Audio API - there are
- * no sampled audio asset files in this repo (see casino-audio-director's
- * agent definition for the sourcing decision). Every sound here is built
- * from oscillators and/or filtered white-noise bursts shaped with GainNode
- * envelopes; nothing is loaded from disk/network.
+ * Card and chip SFX are real sample playback - a CC0 pack from Kenney.nl
+ * (see src/assets/audio/KENNEY_LICENSE.txt), decoded once per URL and
+ * replayed through fresh AudioBufferSourceNodes. Every *category* (card
+ * slide, card place/flip, shoe shove, four chip-amount tiers) has several
+ * variant files; each call picks one at random plus a small playback-rate
+ * jitter, so the same action never sounds like the exact same recording
+ * twice in a row. Dealer/announcer speech is still the Web Speech API (see
+ * useCasinoAudio.js/announcerVoice.js) - it doesn't route through this
+ * engine's Web Audio graph at all.
  *
  * `createAudioEngine()` returns one instance owning exactly one
- * AudioContext plus two gain buses (SFX and "voice" - the latter is a plain
- * JS volume multiplier applied to `SpeechSynthesisUtterance.volume`, since
- * the Web Speech API doesn't route through the Web Audio graph). Positional
+ * AudioContext plus the SFX gain bus, a tracked voice-volume multiplier
+ * (the Web Speech API's own volume knob, kept in sync here for a single
+ * mute switch), and every sample-based "voice" function below. Positional
  * sound uses a single StereoPannerNode per voice, panned from a table-space
  * X coordinate - a pragmatic 2-channel approximation rather than a full 3D
  * PannerNode synced to the live camera (see task scope).
@@ -18,10 +22,56 @@
  * Lifecycle: create one engine per mounted game screen (see
  * useCasinoAudio.js), and always call `dispose()` on unmount/hand teardown.
  * Every one-shot source node this engine creates is tracked in `activeNodes`
- * and stopped/disconnected on dispose, so no dangling
- * AudioBufferSourceNode/OscillatorNode survives past a hand or the screen
- * itself - the leak this subagent is explicitly on the hook for avoiding.
+ * and stopped/disconnected on dispose, so no dangling AudioBufferSourceNode
+ * survives past a hand or the screen itself - the leak this subagent is
+ * explicitly on the hook for avoiding. Decoded AudioBuffers themselves are
+ * cached at module scope (keyed by URL), not per engine instance - they're
+ * immutable data, safe to replay through any context, and decoding the same
+ * ~10-30KB file again on every new hand/screen mount would be pure waste.
  */
+
+// Each import.meta.glob call needs a literal string pattern (Vite resolves
+// these at build time, not at runtime) - that's why this isn't a single
+// helper function parameterized by pattern. `eager: true` bundles every
+// variant upfront (they're tiny - ~400KB total across all categories) so
+// there's no separate lazy-chunk fetch waterfall the first time a sound is
+// needed; `import: 'default'` gives back each file's resolved URL, the same
+// thing a plain `import x from './file.ogg'` would.
+const CARD_SLIDE_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/card-slide-*.ogg', { eager: true, import: 'default' })
+);
+const CARD_PLACE_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/card-place-*.ogg', { eager: true, import: 'default' })
+);
+const CARD_SHOVE_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/card-shove-*.ogg', { eager: true, import: 'default' })
+);
+const CARD_SHUFFLE_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/card-shuffle.ogg', { eager: true, import: 'default' })
+);
+const CHIP_LAY_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/chip-lay-*.ogg', { eager: true, import: 'default' })
+);
+const CHIP_HANDLE_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/chips-handle-*.ogg', { eager: true, import: 'default' })
+);
+const CHIP_COLLIDE_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/chips-collide-*.ogg', { eager: true, import: 'default' })
+);
+const CHIP_STACK_SAMPLES = Object.values(
+  import.meta.glob('../assets/audio/chips-stack-*.ogg', { eager: true, import: 'default' })
+);
+
+const ALL_SAMPLE_URLS = [
+  ...CARD_SLIDE_SAMPLES,
+  ...CARD_PLACE_SAMPLES,
+  ...CARD_SHOVE_SAMPLES,
+  ...CARD_SHUFFLE_SAMPLES,
+  ...CHIP_LAY_SAMPLES,
+  ...CHIP_HANDLE_SAMPLES,
+  ...CHIP_COLLIDE_SAMPLES,
+  ...CHIP_STACK_SAMPLES,
+];
 
 /** Table X range (meters) used to normalize an anchor's X into a -1..1 stereo
  * pan value. Matches src/scene/layout.js's TABLE.width (1.7m) with a little
@@ -39,35 +89,55 @@ export function panForX(x = 0) {
   return clamp(x / PAN_X_RANGE, -1, 1);
 }
 
-/** Builds one reusable white-noise AudioBuffer. Many independent
- * AudioBufferSourceNodes can reference the same buffer concurrently - only
- * the (cheap, one-shot) source nodes need to be created/torn down per play,
- * never the buffer itself. */
-function createNoiseBuffer(ctx, seconds = 1) {
-  const length = Math.max(1, Math.floor(ctx.sampleRate * seconds));
-  const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < length; i += 1) {
-    data[i] = Math.random() * 2 - 1;
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/** Decoded-AudioBuffer cache, keyed by sample URL and shared across every
+ * engine instance for the page's whole lifetime - a plain data object, not
+ * bound to any one AudioContext, so re-decoding on every hand/screen remount
+ * would be pure waste. `decodeAudioData` needs *a* context to decode with,
+ * but the resulting buffer is safe to hand to a source node on any other
+ * context afterward. */
+const bufferPromiseCache = new Map();
+
+function loadBuffer(ctx, url) {
+  let promise = bufferPromiseCache.get(url);
+  if (!promise) {
+    promise = fetch(url)
+      .then((response) => response.arrayBuffer())
+      .then((data) => ctx.decodeAudioData(data));
+    bufferPromiseCache.set(url, promise);
   }
-  return buffer;
+  return promise;
+}
+
+/** Fire-and-forget: starts decoding every known sample the moment a real
+ * AudioContext exists, so individual sfx calls later almost never have to
+ * wait on a fresh decode - only the very first sound of a session risks
+ * that race, and it fails silent (see playSample) rather than blocking. */
+function preloadAllSamples(ctx) {
+  ALL_SAMPLE_URLS.forEach((url) => {
+    loadBuffer(ctx, url).catch(() => {
+      // A missing/corrupt sample is a build-time problem, not a runtime one
+      // to surface to the player - this engine never throws from an SFX call.
+    });
+  });
 }
 
 /**
  * Creates one audio engine instance: an AudioContext, its SFX gain bus, a
- * tracked voice-volume multiplier, and every synth "voice" function. The
- * AudioContext itself is created lazily (on the first sound request) so
- * construction never runs afoul of browsers' autoplay-gesture policies -
- * by the time any sound is actually requested (a bet click, a deal click),
- * a real user gesture has already happened.
+ * tracked voice-volume multiplier, and every sample-playback "voice"
+ * function. The AudioContext itself is created lazily (on the first sound
+ * request) so construction never runs afoul of browsers' autoplay-gesture
+ * policies - by the time any sound is actually requested (a bet click, a
+ * deal click), a real user gesture has already happened.
  */
 export function createAudioEngine() {
   /** @type {AudioContext|null} */
   let ctx = null;
   /** @type {GainNode|null} */
   let sfxBus = null;
-  /** @type {AudioBuffer|null} */
-  let noiseBuffer = null;
   let disposed = false;
   let muted = false;
   /** Independent from the SFX GainNode bus (the Web Speech API doesn't
@@ -75,10 +145,10 @@ export function createAudioEngine() {
    * multiplier every spoken utterance is scaled by. */
   let voiceVolume = 1;
 
-  /** Every currently-live one-shot node (oscillators, buffer sources, and
-   * the gain/filter/panner nodes hung off them), so dispose() can stop and
-   * disconnect all of them even if their natural envelope hasn't finished
-   * yet (e.g. the screen unmounts mid-sound). */
+  /** Every currently-live one-shot node (buffer sources and the gain/panner
+   * nodes hung off them), so dispose() can stop and disconnect all of them
+   * even if their natural envelope hasn't finished yet (e.g. the screen
+   * unmounts mid-sound). */
   const activeNodes = new Set();
 
   function ensureContext() {
@@ -90,7 +160,7 @@ export function createAudioEngine() {
       sfxBus = ctx.createGain();
       sfxBus.gain.value = muted ? 0 : 1;
       sfxBus.connect(ctx.destination);
-      noiseBuffer = createNoiseBuffer(ctx, 1);
+      preloadAllSamples(ctx);
     }
     if (ctx.state === 'suspended') {
       ctx.resume().catch(() => {});
@@ -131,159 +201,104 @@ export function createAudioEngine() {
     }
   }
 
-  /** Plays a filtered noise burst: the shared building block behind card
-   * slide/flip and the shoe slide. */
-  function playNoiseBurst({
-    x = 0,
-    duration = 0.15,
-    peakGain = 0.3,
-    filterType = 'bandpass',
-    freqFrom = 3000,
-    freqTo = 800,
-    q = 0.7,
-  }) {
+  /** Plays one randomly-picked sample from `urls` through the panner/SFX
+   * bus - the shared building block behind every card/chip sound below.
+   * `delay` (seconds) staggers layered chip plays; `playbackRateJitter`
+   * randomizes pitch slightly (+/- the given fraction) so repeated plays of
+   * the same underlying file don't sound identical back-to-back. */
+  function playSample(urls, { x = 0, peakGain = 0.85, delay = 0, playbackRateJitter = 0.05 } = {}) {
+    if (!urls || urls.length === 0) return;
     const audioCtx = ensureContext();
     if (!audioCtx || muted) return;
-    const now = audioCtx.currentTime;
+    const url = pickRandom(urls);
 
-    const source = audioCtx.createBufferSource();
-    source.buffer = noiseBuffer;
-    source.loop = false;
+    loadBuffer(audioCtx, url)
+      .then((buffer) => {
+        // The engine may have been muted or torn down while this sample was
+        // still decoding - re-check rather than trusting the guard above.
+        if (disposed || muted || !sfxBus) return;
 
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = filterType;
-    filter.Q.value = q;
-    filter.frequency.setValueAtTime(freqFrom, now);
-    filter.frequency.exponentialRampToValueAtTime(Math.max(40, freqTo), now + duration);
+        const now = audioCtx.currentTime + delay;
+        const playbackRate = 1 + (Math.random() * 2 - 1) * playbackRateJitter;
 
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(peakGain, now + Math.min(0.01, duration / 4));
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.playbackRate.value = playbackRate;
 
-    const panner = audioCtx.createStereoPanner();
-    panner.pan.value = panForX(x);
+        const gain = audioCtx.createGain();
+        gain.gain.value = peakGain;
 
-    source.connect(filter);
-    filter.connect(gain);
-    gain.connect(panner);
-    panner.connect(sfxBus);
+        const panner = audioCtx.createStereoPanner();
+        panner.pan.value = panForX(x);
 
-    const stopAt = now + duration + 0.02;
-    source.start(now);
-    source.stop(stopAt);
-    scheduleCleanup(source, [source, filter, gain, panner], stopAt);
+        source.connect(gain);
+        gain.connect(panner);
+        panner.connect(sfxBus);
+
+        const stopAt = now + buffer.duration / playbackRate + 0.05;
+        source.start(now);
+        scheduleCleanup(source, [source, gain, panner], stopAt);
+      })
+      .catch(() => {
+        // Decode/network failure - fail silent, matching this engine's
+        // existing philosophy (never throw from an SFX call site).
+      });
   }
 
-  /** Plays a single short tonal "ping" - the building block behind chip
-   * clinks (layered, several pings per call, varied by stack size). */
-  function playPing({ x = 0, frequency = 1600, duration = 0.18, peakGain = 0.25, type = 'triangle', delay = 0 }) {
-    const audioCtx = ensureContext();
-    if (!audioCtx || muted) return;
-    const now = audioCtx.currentTime + delay;
-
-    const osc = audioCtx.createOscillator();
-    osc.type = type;
-    osc.frequency.setValueAtTime(frequency, now);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(60, frequency * 0.85), now + duration);
-
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(peakGain, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    const panner = audioCtx.createStereoPanner();
-    panner.pan.value = panForX(x);
-
-    osc.connect(gain);
-    gain.connect(panner);
-    panner.connect(sfxBus);
-
-    const stopAt = now + duration + 0.02;
-    osc.start(now);
-    osc.stop(stopAt);
-    scheduleCleanup(osc, [osc, gain, panner], stopAt);
-  }
-
-  /** Chip clink, layered/varied by stack size so a $5 bet and a $5000 bet
-   * are audibly different - not the same sample replayed. Larger amounts
-   * get more layers (a fuller, "thicker" stack sound), staggered slightly
-   * and pitched lower (bigger chip stack = deeper clatter), smaller amounts
-   * get a single bright, high ping. */
+  /** Chip clink, varied by stack size so a $5 bet and a $500 bet are
+   * audibly different - not the same sample replayed. Each tier reaches for
+   * a different Kenney sample category (a single light "lay" for a small
+   * bet, up through several staggered "stack" plays for a big one) rather
+   * than just changing volume, so bigger bets read as a fuller stack, not
+   * just a louder one. */
   function chipClink(x = 0, amount = 0) {
+    let urls;
     let layerCount;
-    let baseFreq;
     let stagger;
     if (amount < 25) {
+      urls = CHIP_LAY_SAMPLES;
       layerCount = 1;
-      baseFreq = 2000;
       stagger = 0;
     } else if (amount < 100) {
+      urls = CHIP_HANDLE_SAMPLES;
       layerCount = 2;
-      baseFreq = 1600;
-      stagger = 0.035;
+      stagger = 0.04;
     } else if (amount < 500) {
+      urls = CHIP_COLLIDE_SAMPLES;
       layerCount = 3;
-      baseFreq = 1200;
-      stagger = 0.028;
+      stagger = 0.032;
     } else {
+      urls = CHIP_STACK_SAMPLES;
       layerCount = 4;
-      baseFreq = 900;
-      stagger = 0.022;
+      stagger = 0.026;
     }
     for (let i = 0; i < layerCount; i += 1) {
-      const jitter = 1 + (Math.random() - 0.5) * 0.18;
-      playPing({
-        x,
-        frequency: baseFreq * jitter * (1 - i * 0.08),
-        duration: 0.16 + i * 0.03,
-        peakGain: 0.22 - i * 0.02,
-        type: i === 0 ? 'triangle' : 'sine',
-        delay: i * stagger,
-      });
+      playSample(urls, { x, peakGain: 0.85 - i * 0.06, delay: i * stagger });
     }
   }
 
   /** Card slide: plays whenever a card starts flying, whether the opening
    * deal or a hit (see useCasinoAudio's cardSlide()). */
   function cardSlide(x = 0) {
-    playNoiseBurst({
-      x,
-      duration: 0.14,
-      peakGain: 0.22,
-      filterType: 'bandpass',
-      freqFrom: 3200,
-      freqTo: 900,
-      q: 1.1,
-    });
+    playSample(CARD_SLIDE_SAMPLES, { x, peakGain: 0.8 });
   }
 
-  /** Card flip/reveal: a short, snappy click - distinct from the longer,
-   * softer slide. */
+  /** Card flip/reveal: a crisp placement sound - distinct from the longer
+   * in-flight slide. */
   function cardFlip(x = 0) {
-    playNoiseBurst({
-      x,
-      duration: 0.07,
-      peakGain: 0.3,
-      filterType: 'bandpass',
-      freqFrom: 4200,
-      freqTo: 2200,
-      q: 2.2,
-    });
+    playSample(CARD_PLACE_SAMPLES, { x, peakGain: 0.85 });
   }
 
-  /** Shoe slide: a longer, lower, "thicker" whoosh distinct from a per-card
-   * slide - plays once at the start of a deal sequence. */
+  /** Shoe slide: a longer, "thicker" push distinct from a per-card slide -
+   * plays once at the start of a deal sequence. */
   function shoeSlide(x = 0) {
-    playNoiseBurst({
-      x,
-      duration: 0.34,
-      peakGain: 0.2,
-      filterType: 'lowpass',
-      freqFrom: 1400,
-      freqTo: 300,
-      q: 0.5,
-    });
+    playSample(CARD_SHOVE_SAMPLES, { x, peakGain: 0.8 });
+  }
+
+  /** Shoe reshuffle: plays once whenever the shoe is replaced with a fresh
+   * one (see GameScreen.jsx's needsReshuffle handling in deal()). */
+  function shuffle(x = 0) {
+    playSample(CARD_SHUFFLE_SAMPLES, { x, peakGain: 0.7 });
   }
 
   function setMuted(nextMuted) {
@@ -333,13 +348,13 @@ export function createAudioEngine() {
     }
     ctx = null;
     sfxBus = null;
-    noiseBuffer = null;
   }
 
   return {
     cardSlide,
     cardFlip,
     shoeSlide,
+    shuffle,
     chipClink,
     setMuted,
     isMuted,

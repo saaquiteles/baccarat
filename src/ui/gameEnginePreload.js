@@ -1,15 +1,18 @@
 /**
  * gameEnginePreload.js
  * ---------------------------------------------------------------------------
- * Owns the one real async cost in Buriccat's boot sequence: fetching and
- * evaluating GameScreen's lazy chunk (three.js/React Three Fiber/drei/
- * @react-three/postprocessing/GSAP - see vite.config.js's manualChunks
- * comment for why it's a single ~1.2 MB chunk). There are no texture/model/
- * sample-audio files anywhere in this project to preload - table materials
- * are procedural (src/scene/materials.js) and every sound is synthesized
- * live via the Web Audio API (src/audio/audioEngine.js) - so this chunk load
- * is the only thing a loading screen can honestly measure. See PRODUCT.md's
- * "never fabricate progress" principle.
+ * Owns the one real async cost in Buriccat's boot sequence *that this
+ * loading screen tracks*: fetching and evaluating GameScreen's lazy chunk
+ * (three.js/React Three Fiber/drei/@react-three/postprocessing/GSAP - see
+ * vite.config.js's manualChunks comment for why it's a single ~1.2 MB
+ * chunk). Table materials are still procedural (src/scene/materials.js),
+ * so there's nothing to preload there; card/chip SFX are real sample files
+ * now (src/assets/audio/, see audioEngine.js), but they're small (~400 KB
+ * total), fetched lazily on the first actual sound request rather than
+ * eagerly at boot, and not part of what this loading screen needs to
+ * represent - the GameScreen chunk load is still the only *upfront* cost
+ * a loading screen can honestly measure. See PRODUCT.md's "never fabricate
+ * progress" principle.
  *
  * A plain external store (subscribe/getSnapshot, read via useSyncExternalStore
  * in useGameEnginePreload.js) rather than a hook that owns its own state,

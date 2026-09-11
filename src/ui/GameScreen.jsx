@@ -286,6 +286,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     if (currentShoe.needsReshuffle) {
       currentShoe = initializeShoe();
       currentHistory = [];
+      audio.sfx.shuffle(SHOE_EXIT_POINT.x);
     }
 
     const bets = {
