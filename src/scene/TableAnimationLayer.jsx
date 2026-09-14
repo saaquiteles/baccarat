@@ -84,7 +84,7 @@ function TableAnimationLayer({
           key={flight.id}
           from={flight.from}
           to={flight.to}
-          value={flight.value}
+          value={flight.chipValue}
           onComplete={() => onChipFlightComplete(flight.id)}
         />
       ))}

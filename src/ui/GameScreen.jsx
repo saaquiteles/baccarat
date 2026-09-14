@@ -201,10 +201,52 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     [mainBetAmounts, sideBetAmounts]
   );
 
-  const spotAmounts = useMemo(
+  const rawSpotAmounts = useMemo(
     () => ({ ...mainBetAmounts, ...sideBetAmounts }),
     [mainBetAmounts, sideBetAmounts]
   );
+
+  // The *visual* resting-stack amount per spot, as opposed to the
+  // authoritative bet amount above. These deliberately diverge for exactly
+  // as long as a chip is mid-flight to/from that spot: `mainBetAmounts`/
+  // `sideBetAmounts` update the instant a bet is placed/cleared/settled
+  // (2D balance, WAGERED display, and payout math all need that to be
+  // instant), but if the 3D resting stack (ChipStackMesh) read that same
+  // amount directly, it would render the new chip at rest on the very same
+  // frame the flight animation starts - a duplicate, popped-in chip sitting
+  // right where the flying one is still headed. Subtracting/adding back
+  // each active flight's amount here means the resting stack only ever
+  // shows chips that are NOT currently animating; the moment a flight
+  // completes and is removed from `chipFlights` (see removeChipFlight), this
+  // recomputes in the same render, so the resting stack picks up the new
+  // chip in the exact same frame the flight mesh disappears - no gap, no
+  // overlap, regardless of how many flights are in flight to/from a spot at
+  // once (spam-clicking a bet spot, or Clear Bets on several spots at once).
+  const spotAmounts = useMemo(() => {
+    const visual = { ...rawSpotAmounts };
+    chipFlights.forEach((flight) => {
+      Object.entries(BETTING_SPOTS).forEach(([spotId, spotPosition]) => {
+        if (flight.to === spotPosition) {
+          // Arriving at this spot: not resting yet - hide it from the
+          // stack until the flight itself lands.
+          visual[spotId] = (visual[spotId] ?? 0) - flight.amount;
+        } else if (flight.from === spotPosition) {
+          // Leaving this spot (Clear Bets / raking a loss away): the
+          // authoritative amount already dropped to its post-clear value,
+          // but the stack should still look untouched until the chip has
+          // actually finished traveling away.
+          visual[spotId] = (visual[spotId] ?? 0) + flight.amount;
+        }
+      });
+    });
+    // Clamp defensively - a flight's amount should never exceed what's
+    // actually resting at its origin spot, but a negative stack amount
+    // would otherwise crash computeChipBreakdown's assumptions.
+    Object.keys(visual).forEach((spotId) => {
+      if (visual[spotId] < 0) visual[spotId] = 0;
+    });
+    return visual;
+  }, [rawSpotAmounts, chipFlights]);
 
   const spawnChipFlight = useCallback((from, to, amount) => {
     const chipValue = representativeChip(amount, CHIP_DENOMINATION_VALUES);
@@ -218,7 +260,13 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     // updater itself would have every queued flight in that batch see the
     // same (fully-incremented) ref value and collide on the same React key.
     const id = flightIdRef.current;
-    setChipFlights((flights) => [...flights, { id, from, to, value: chipValue }]);
+    // `amount` (the real staked/cleared value) drives the resting-stack
+    // exclusion above; `chipValue` (which physical denomination model to
+    // render) only decides what the flying chip *looks like* - the two
+    // deliberately don't have to be the same number (a $75 bet flies as a
+    // single representative $25 chip, but must still exclude the full $75
+    // from the resting stack while it's in the air).
+    setChipFlights((flights) => [...flights, { id, from, to, amount, chipValue }]);
   }, [audio.sfx]);
 
   const removeChipFlight = useCallback((id) => {
