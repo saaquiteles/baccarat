@@ -7,11 +7,11 @@ A 3D Punto Banco (Baccarat) browser game built with React, React Three Fiber, an
 The core game is playable end-to-end. All seven planned subsystems are built and verified.
 - **Rules engine** — full Punto Banco rules (8-deck shoe, CSPRNG-backed Fisher-Yates shuffle, burn/cut-card procedure, the complete Player/Banker drawing tableau), both a standard 5%-commission ruleset and a no-commission (Banker-6-pays-1:2) ruleset, and all five standard side bets (Player Pair, Banker Pair, Perfect Pair, Dragon 7, Panda 8). Covered by 111 automated tests (`src/game/`, `tests/game/`).
 - **2D UI** — betting board with oval bet spots, a chip tray whose denominations scale dynamically with balance (spam-clicking a spot auto-downgrades to the largest affordable chip, so you can always go exactly all-in), a payout/result toast, Bead Plate and Big Road roadmaps, and a Game Over / Try Again flow when your balance hits zero. (Big Eye Boy, Small Road, and Cockroach Pig were deliberately left out as unnecessary for a simple table.)
-- **3D scene** — a procedurally-built casino table (felt, wood rail, brass trim, chip rack, dealing shoe, discard tray), a lighting rig with a restrained bloom pass, and a single overhead camera for betting that automatically eases into a tight, legible close-up on the cards during dealing, squeezing, and settling.
-- **Card & chip animation** — cards deal in true casino order (Player, Banker, Player, Banker), reveal via a drag-to-squeeze gesture (or a Skip/Reveal-All button) on a custom vertex-shader card, and only *then* does the dealer decide whether to hit — matching real play, not dealing every card up front. Chips throw and rake between the rack, the felt, and the discard tray.
-- **Audio** — card/chip SFX are real sample playback (a CC0 Kenney.nl pack, see `src/assets/audio/`), picked per stack-size/action with a little playback-rate jitter so repeats don't sound identical. Dealer/announcer lines are spoken via the Web Speech API with a female voice selected by name heuristic and pitch/rate tuned for a lower, slower delivery (`src/audio/announcerVoice.js`). No ambient bed yet.
+- **3D scene** — a procedurally-built casino table (felt, wood rail, brass trim, dealing shoe, discard tray) plus a chip rack and every resting/flying chip modeled from real textured GLTF assets (one per denomination, see `src/assets/models/chips/`), a lighting rig with a restrained bloom pass, and two camera views: a wider Vertical Close-Up for betting and the initial deal, and a tighter Hand Close-Up that takes over for squeezing/settling.
+- **Card & chip animation** — cards deal in true casino order (Player, Banker, Player, Banker), reveal via a drag-to-squeeze gesture (or a Skip/Reveal-All button) on a custom vertex-shader card with crisp SDF rank/suit text, and only *then* does the dealer decide whether to hit — matching real play, not dealing every card up front. Chips throw and rake between the rack, the felt, and the discard tray, with the resting stack only ever showing chips that aren't currently mid-flight.
+- **Audio** — card/chip SFX are real sample playback (a CC0 Kenney.nl pack, see `src/assets/audio/`), picked per stack-size/action with a little playback-rate jitter so repeats don't sound identical. Dealer/announcer lines are spoken via the Web Speech API with a female voice selected by name heuristic and pitch/rate tuned for a lower, slower delivery (`src/audio/announcerVoice.js`). A looping ambient music bed plays throughout, quieter on the Game screen than the Menu (`src/audio/useBackgroundMusic.js`).
 - **RNG/statistical audit** — a seeded-PRNG Monte Carlo house-edge regression test (`tests/game/houseEdge.test.js`) alongside the rules-engine unit suite.
-- **Performance pass** — chip rack/stacks use `instancedMesh` instead of per-chip meshes, GameScreen's ~1.2 MB React Three Fiber/GSAP dependency chunk is lazy-loaded behind a real, byte-tracked loading screen rather than blocking the initial bundle (see `src/ui/gameEnginePreload.js`).
+- **Performance pass** — chip model loads are decoded once per denomination and shared by reference across every clone on the table, GameScreen's ~1.3 MB React Three Fiber/GSAP dependency chunk is lazy-loaded behind a real, byte-tracked loading screen rather than blocking the initial bundle (see `src/ui/gameEnginePreload.js`).
 
 ## Tech stack
 
@@ -51,8 +51,11 @@ src/
                  React Three Fiber components; spatial anchors centralized in layout.js.
   ui/           2D screens and HUD: Menu, Settings, the Game screen (betting board, roadmaps,
                  result toast, Game Over modal) and the real, byte-tracked loading screen.
-  audio/        Card/chip sample playback and Web Speech API dealer/announcer voice lines.
-  assets/audio/ The CC0 Kenney.nl sample pack (see KENNEY_LICENSE.txt).
+  audio/        Card/chip sample playback, background music, and Web Speech API
+                 dealer/announcer voice lines.
+  assets/audio/ The CC0 Kenney.nl sample pack (see KENNEY_LICENSE.txt) plus the
+                 background music track.
+  assets/models/ One real GLTF chip model per denomination (models/chips/).
 tests/game/     Unit tests for src/game/, mirroring its file names.
 ```
 
@@ -60,6 +63,5 @@ tests/game/     Unit tests for src/game/, mirroring its file names.
 
 ## Known limitations
 
-- No ambient background bed (card/chip SFX and dealer voice lines are covered - see Current status).
 - No save/persistence — balance and shoe state reset on page reload.
-- No texture compression or KTX2/Basis pipeline (materials are procedural, so this hasn't been a priority).
+- No texture compression or KTX2/Basis pipeline (the table's own materials are procedural; the chip models' baked textures are small enough that this hasn't been a priority yet).
