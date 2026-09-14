@@ -90,20 +90,32 @@ const Card = forwardRef(function Card({ card = null, revealed = false, initialPo
           <Text
             position={[-CARD_WIDTH * 0.26, 0, CARD_LENGTH * 0.27]}
             rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.017}
+            fontSize={0.019}
             color={textColor}
             anchorX="center"
             anchorY="middle"
+            sdfGlyphSize={128}
+            outlineWidth={0.0006}
+            outlineColor={textColor}
+            outlineOpacity={0.35}
+            outlineBlur={0.0015}
+            material-toneMapped={false}
           >
             {card.rank}
           </Text>
           <Text
             position={[CARD_WIDTH * 0.2, 0, -CARD_LENGTH * 0.22]}
             rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.021}
+            fontSize={0.023}
             color={textColor}
             anchorX="center"
             anchorY="middle"
+            sdfGlyphSize={128}
+            outlineWidth={0.0006}
+            outlineColor={textColor}
+            outlineOpacity={0.35}
+            outlineBlur={0.0015}
+            material-toneMapped={false}
           >
             {suitChar}
           </Text>
