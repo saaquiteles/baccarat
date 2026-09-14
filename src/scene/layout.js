@@ -217,7 +217,15 @@ export const CAMERA_VIEWS = Object.freeze({
     // y must clear FELT_Y (0.75) by a comfortable margin - a y below the
     // felt puts the camera inside the rail/pedestal geometry (a real bug
     // caught here: the previous position.y of 0.29 was *under* the table).
-    position: Object.freeze({ x: 0, y: 1.0, z: 0.62 }),
+    // position/target are one fixed pair rotated together around the
+    // target in the y-z plane, at a constant ~0.74m radius from it, so
+    // retuning the *tilt* (steeper = more top-down, a flatter "2D" read on
+    // the cards) never has to also re-tune the framing/zoom: at radius r
+    // and tilt angle theta above horizontal, position.y = target.y +
+    // r*sin(theta), position.z = target.z + r*cos(theta). Currently ~35
+    // degrees (was ~20 degrees - too raking an angle to read the cards as
+    // flatly as intended).
+    position: Object.freeze({ x: 0, y: 1.177, z: 0.529 }),
     target: Object.freeze({ x: 0, y: FELT_Y + 0.01, z: HAND_SLOT_Z }),
     // fov was 32 - originally tuned/verified back when this canvas sat in a
     // narrower side-panel layout (~1.55 aspect). Now that the table is a
