@@ -5,14 +5,21 @@
  * loading screen tracks*: fetching and evaluating GameScreen's lazy chunk
  * (three.js/React Three Fiber/drei/@react-three/postprocessing/GSAP - see
  * vite.config.js's manualChunks comment for why it's a single ~1.2 MB
- * chunk). Table materials are still procedural (src/scene/materials.js),
- * so there's nothing to preload there; card/chip SFX are real sample files
- * now (src/assets/audio/, see audioEngine.js), but they're small (~400 KB
- * total), fetched lazily on the first actual sound request rather than
- * eagerly at boot, and not part of what this loading screen needs to
- * represent - the GameScreen chunk load is still the only *upfront* cost
- * a loading screen can honestly measure. See PRODUCT.md's "never fabricate
- * progress" principle.
+ * chunk). Table/felt/rail materials are still procedural
+ * (src/scene/materials.js); card/chip SFX are real sample files
+ * (src/assets/audio/, see audioEngine.js) fetched lazily on the first
+ * actual sound request; chip *models* are real GLTF assets
+ * (src/assets/models/chips/, see chipModels.js) fetched (one at a time -
+ * see chipModels.js's doc comment for why loads are serialized rather than
+ * concurrent) the moment GameScreen first renders the always-visible chip
+ * rack, which happens to land inside this loader's own REVEAL_GRACE_MS
+ * hidden-render window (see GameScreenLoader.jsx) - so in practice they've
+ * usually resolved before the crossfade uncovers the canvas, without
+ * needing a second tracked progress source here. None of
+ * these are part of what this loading screen needs to represent - the
+ * GameScreen chunk load is still the only *upfront* cost a loading screen
+ * can honestly measure. See PRODUCT.md's "never fabricate progress"
+ * principle.
  *
  * A plain external store (subscribe/getSnapshot, read via useSyncExternalStore
  * in useGameEnginePreload.js) rather than a hook that owns its own state,

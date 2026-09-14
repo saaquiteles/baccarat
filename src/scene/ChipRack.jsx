@@ -1,69 +1,35 @@
-import { useLayoutEffect, useMemo, useRef } from 'react';
-import * as THREE from 'three';
-import { PLASTIC_MATERIAL_PROPS, CHIP_MATERIAL_PROPS, CHIP_DENOMINATION_COLORS } from './materials.js';
+import { PLASTIC_MATERIAL_PROPS, CHIP_DENOMINATION_VALUES } from './materials.js';
+import ChipModel from './ChipModel.jsx';
 
 // Exported so other dynamic-chip components (see ChipStackMesh.jsx,
 // ChipFlight.jsx) reuse the exact same physical chip size rather than
-// inventing a second set of dimensions.
-export const CHIP_RADIUS = 0.019;
-export const CHIP_HEIGHT = 0.0032;
+// inventing a second set of dimensions - matches the real chip models'
+// own bounds (see src/assets/models/chips/), not an arbitrary guess.
+export const CHIP_RADIUS = 0.0195;
+export const CHIP_HEIGHT = 0.0033;
 const CHIPS_PER_STACK = 16;
 const SLOT_WIDTH = 0.052;
 const SLOT_DEPTH = 0.09;
 const WALL_HEIGHT = CHIP_HEIGHT * CHIPS_PER_STACK + 0.012;
 const WALL_THICKNESS = 0.008;
-const RACK_WIDTH = SLOT_WIDTH * CHIP_DENOMINATION_COLORS.length + WALL_THICKNESS;
+const RACK_WIDTH = SLOT_WIDTH * CHIP_DENOMINATION_VALUES.length + WALL_THICKNESS;
 const BASE_THICKNESS = 0.012;
-
-// Shared geometry for every chip instance - one cylinder, reused across all
-// stacks/slots via a single instancedMesh rather than cloned per chip.
-const chipGeometry = new THREE.CylinderGeometry(CHIP_RADIUS, CHIP_RADIUS, CHIP_HEIGHT, 24);
 
 /**
  * ChipRack.jsx
  * ---------------------------------------------------------------------------
  * The dealer's chip tray: a shallow slotted frame holding one stack per
- * denomination color. All chips share one geometry and are drawn through a
- * single `<instancedMesh>` (per-instance transform + color), which is both
- * the efficient approach today and exactly the shape a later
- * performance-focused subagent would want when it starts instancing
- * repeated meshes elsewhere in the scene.
+ * denomination, one slot per value in CHIP_DENOMINATION_VALUES. Each chip is
+ * a real modeled/textured GLTF asset (see ChipModel.jsx/chipModels.js)
+ * rather than a procedural cylinder, so - unlike the betting-spot stacks,
+ * which vary in height with the live bet - this rack's chips never change
+ * and are simply laid out once as plain positioned <ChipModel> instances.
  *
  * Positioned by the caller (see CasinoScene.jsx, layout.js
  * CHIP_RACK_POSITION) - local (0,0,0) is the resting point on the felt.
  */
 function ChipRack() {
-  const instancedRef = useRef(null);
-  const chipCount = CHIP_DENOMINATION_COLORS.length * CHIPS_PER_STACK;
-
-  const slotOffsets = useMemo(() => {
-    const totalWidth = SLOT_WIDTH * CHIP_DENOMINATION_COLORS.length;
-    return CHIP_DENOMINATION_COLORS.map((_, i) => -totalWidth / 2 + SLOT_WIDTH * (i + 0.5));
-  }, []);
-
-  useLayoutEffect(() => {
-    const mesh = instancedRef.current;
-    if (!mesh) return;
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-    let instanceIndex = 0;
-    CHIP_DENOMINATION_COLORS.forEach((denom, slotIndex) => {
-      for (let c = 0; c < CHIPS_PER_STACK; c++) {
-        dummy.position.set(
-          slotOffsets[slotIndex],
-          BASE_THICKNESS + CHIP_HEIGHT / 2 + c * CHIP_HEIGHT,
-          0
-        );
-        dummy.rotation.set(0, 0, 0);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(instanceIndex, dummy.matrix);
-        mesh.setColorAt(instanceIndex, color.set(denom.color));
-        instanceIndex += 1;
-      }
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [slotOffsets]);
+  const totalWidth = SLOT_WIDTH * CHIP_DENOMINATION_VALUES.length;
 
   return (
     <group name="chip-rack">
@@ -74,7 +40,7 @@ function ChipRack() {
       </mesh>
 
       {/* Divider walls, one more than there are slots. */}
-      {Array.from({ length: CHIP_DENOMINATION_COLORS.length + 1 }, (_, i) => {
+      {Array.from({ length: CHIP_DENOMINATION_VALUES.length + 1 }, (_, i) => {
         const x = -RACK_WIDTH / 2 + SLOT_WIDTH * i;
         return (
           <mesh
@@ -100,14 +66,16 @@ function ChipRack() {
         </mesh>
       ))}
 
-      <instancedMesh
-        ref={instancedRef}
-        args={[chipGeometry, undefined, chipCount]}
-        castShadow
-        receiveShadow
-      >
-        <meshStandardMaterial {...CHIP_MATERIAL_PROPS} />
-      </instancedMesh>
+      {CHIP_DENOMINATION_VALUES.map((value, slotIndex) => {
+        const x = -totalWidth / 2 + SLOT_WIDTH * (slotIndex + 0.5);
+        return Array.from({ length: CHIPS_PER_STACK }, (_, c) => (
+          <ChipModel
+            key={`${value}-${c}`}
+            value={value}
+            position={[x, BASE_THICKNESS + CHIP_HEIGHT / 2 + c * CHIP_HEIGHT, 0]}
+          />
+        ));
+      })}
     </group>
   );
 }

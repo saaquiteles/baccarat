@@ -68,21 +68,12 @@ export const TRAY_LINER_MATERIAL_PROPS = Object.freeze({
 });
 
 /**
- * Chip denomination colors - intentionally the same palette as the 2D
- * betting board's chip tray (see src/ui/constants.js CHIP_VALUES and the
- * .chip--N classes in App.css), repeated here rather than imported so the
- * scene layer stays decoupled from the 2D UI layer.
+ * Every chip denomination the 3D scene has a real modeled/textured chip for
+ * (see src/scene/chipModels.js) - the same eight values as the 2D betting
+ * board's tray ladder (src/ui/constants.js CHIP_VALUE_LADDER), repeated here
+ * rather than imported so the scene layer stays decoupled from the 2D UI
+ * layer. Each chip's actual look (face artwork, edge color) comes baked into
+ * its GLTF model, not a flat tinted material, so unlike the procedural chip
+ * this replaced, there's no color/material data left to keep here.
  */
-export const CHIP_DENOMINATION_COLORS = Object.freeze([
-  { value: 1, color: '#6b6b6b' },
-  { value: 5, color: '#c0392b' },
-  { value: 25, color: '#1f9d55' },
-  { value: 100, color: '#1f1f24' },
-  { value: 500, color: '#7d3ac1' },
-]);
-
-/** Slight-sheen material props for chip edges/faces (plastic composite). */
-export const CHIP_MATERIAL_PROPS = Object.freeze({
-  roughness: 0.35,
-  metalness: 0.15,
-});
+export const CHIP_DENOMINATION_VALUES = Object.freeze([1, 5, 25, 100, 500, 1000, 5000, 25000]);

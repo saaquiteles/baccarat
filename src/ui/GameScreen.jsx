@@ -21,7 +21,7 @@ import {
   PLAYER_HAND_SLOTS,
   BANKER_HAND_SLOTS,
 } from '../scene/layout.js';
-import { CHIP_DENOMINATION_COLORS } from '../scene/materials.js';
+import { CHIP_DENOMINATION_VALUES } from '../scene/materials.js';
 import { representativeChip } from '../scene/chipBreakdown.js';
 import {
   CARD_DEAL_STAGGER,
@@ -207,7 +207,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
   );
 
   const spawnChipFlight = useCallback((from, to, amount) => {
-    const chip = representativeChip(amount, CHIP_DENOMINATION_COLORS);
+    const chipValue = representativeChip(amount, CHIP_DENOMINATION_VALUES);
     audio.sfx.chipClink(to.x, amount);
     flightIdRef.current += 1;
     // Freeze the id into its own binding *before* handing it to the
@@ -218,7 +218,7 @@ function GameScreen({ payoutRuleset, startingBalance, onExit }) {
     // updater itself would have every queued flight in that batch see the
     // same (fully-incremented) ref value and collide on the same React key.
     const id = flightIdRef.current;
-    setChipFlights((flights) => [...flights, { id, from, to, color: chip.color }]);
+    setChipFlights((flights) => [...flights, { id, from, to, value: chipValue }]);
   }, [audio.sfx]);
 
   const removeChipFlight = useCallback((id) => {

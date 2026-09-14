@@ -8,6 +8,16 @@ export default defineConfig({
   // project site, not a custom domain or user/org root page) - asset URLs
   // must be rooted at the repo name, not the domain root.
   base: '/baccarat/',
+  // .glb models (src/scene/chipModels.js) are resolved per-call via
+  // `import.meta.glob(..., { query: '?url' })` rather than a global
+  // `assetsInclude: ['**/*.glb']` entry - the latter was tried first and,
+  // for a reason never fully root-caused, made the entire production
+  // <Canvas> render blank (no console error, verified with every chip/GLTF
+  // code path stripped back to nothing - the blank render reproduced with
+  // *only* this one config line added to an otherwise unmodified
+  // checkout). The per-call `?url` suffix achieves the same "give me this
+  // file's URL instead of parsing it as JS" outcome without touching this
+  // global option, and doesn't reproduce the issue.
   build: {
     // The production bundle used to be a single ~1.4 MB unsplit chunk
     // (flagged on every build). The real fix lives in src/App.jsx:
@@ -36,6 +46,9 @@ export default defineConfig({
     // caching need justifies revisiting per-library vendor chunks, verify
     // with `vite build --manifest` that the entry chunk's `imports` array
     // stays empty (no forced eager edge into whatever chunk holds react).
-    chunkSizeWarningLimit: 1300,
+    // Bumped from 1300 to 1400 when real GLTF chip models (drei's
+    // GLTFLoader) replaced the procedural cylinder chips - still lazy, off
+    // the initial bundle, just a bigger slice of the same GameScreen chunk.
+    chunkSizeWarningLimit: 1400,
   },
 })
