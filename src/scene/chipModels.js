@@ -14,20 +14,19 @@ import { GLTFLoader } from 'three-stdlib';
  * eight values are copied into src/assets/models/chips/, so this map is
  * exactly the denominations the game can actually stake.
  *
- * Loading deliberately does NOT go through drei's `useGLTF`/React Suspense:
- * with this many chip instances sharing a handful of denominations (the
- * rack alone mounts 16 <ChipModel>s per denomination), more than one
- * concurrent GLTFLoader parse in flight at once - even for the exact same
- * cached URL - was observed to hang forever with no error in this
- * three@0.182/@react-three/fiber@9/drei@10/React 19 combination (verified
- * directly against raw GLTFLoader.load(), independent of drei or Suspense:
- * two concurrent `new GLTFLoader().load()` calls for the same file never
- * called either their success or error callback, in both the dev server and
- * a production build, while the identical loads run one-after-another
- * resolved instantly). Serializing every load through one queue - only ever
- * one GLTFLoader parse in flight at a time - reliably sidesteps whatever
- * that concurrency issue is, at a trivial cost given how small/few these
- * files are (8 files, tens of KB each).
+ * Loads are independent per URL (deduped via sceneCache, same as any other
+ * fetch-backed cache), NOT funneled through one shared queue - an earlier
+ * version serialized every load to work around a suspected GLTFLoader
+ * concurrency issue, but that queue had no timeout: the very first queued
+ * load never calling back (observed on the live deployed build - only the
+ * first denomination's .glb was ever even requested, every later one queued
+ * behind it and stuck forever) permanently blocked every chip denomination
+ * behind it, with no way to recover. A single stuck/slow load should never
+ * be able to take every other chip down with it - see LOAD_TIMEOUT_MS below,
+ * the actual fix: whatever the cause of one load never calling back, it
+ * can't block anything else, and a timed-out load is evicted from the cache
+ * so the next caller gets a fresh retry instead of a permanently poisoned
+ * entry.
  */
 const CHIP_MODEL_MODULES = import.meta.glob('../assets/models/chips/chip_*.glb', {
   eager: true,
@@ -64,16 +63,17 @@ export function chipModelUrlForValue(value) {
  * the cached original. */
 const sceneCache = new Map();
 
-/** Every load is chained onto this single promise so at most one
- * GLTFLoader parse is ever in flight at once - see the module doc comment
- * above for why. */
-let loadQueueTail = Promise.resolve();
+/** How long a single chip model gets to load before it's treated as failed
+ * and evicted from the cache. Generous for a file this small (tens of KB)
+ * on any real connection - this exists purely as a backstop against a load
+ * that never calls back at all, not to police normal network speed. */
+const LOAD_TIMEOUT_MS = 15000;
 
 /**
  * Resolves to the shared (uncloned) THREE.Group for a chip denomination's
- * model, loading it at most once per URL. Never rejects the shared cache
- * entry on failure - a failed load is retried by the next caller instead of
- * poisoning every future request for that denomination.
+ * model, loading it at most once per URL. Never leaves a failed/timed-out
+ * load poisoning the cache - the entry is evicted so the next caller gets a
+ * fresh retry instead of an entry that will never resolve.
  * @param {number} value
  * @returns {Promise<import('three').Group>}
  */
@@ -83,23 +83,30 @@ export function loadChipModelScene(value) {
   if (cached) return cached;
 
   const promise = new Promise((resolve, reject) => {
-    loadQueueTail = loadQueueTail.then(
-      () =>
-        new Promise((advanceQueue) => {
-          new GLTFLoader().load(
-            url,
-            (gltf) => {
-              resolve(gltf.scene);
-              advanceQueue();
-            },
-            undefined,
-            (error) => {
-              sceneCache.delete(url); // let a later call retry instead of caching the failure
-              reject(error);
-              advanceQueue();
-            }
-          );
-        })
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      sceneCache.delete(url);
+      reject(new Error(`Timed out loading chip model: ${url}`));
+    }, LOAD_TIMEOUT_MS);
+
+    new GLTFLoader().load(
+      url,
+      (gltf) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        resolve(gltf.scene);
+      },
+      undefined,
+      (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        sceneCache.delete(url);
+        reject(error);
+      }
     );
   });
 
